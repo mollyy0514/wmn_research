@@ -57,7 +57,7 @@ else:
 total_time = args.time
 
 # ===================== Parameters =====================
-pcap_path = '/sdcard/pcapdir'
+pcap_path = '/sdcard/experiment_log'
 
 # ===================== Global Variables =====================
 stop_threads = False
