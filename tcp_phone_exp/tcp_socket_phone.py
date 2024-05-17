@@ -101,7 +101,7 @@ current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two
 current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
 
 pcap = os.path.join(pcap_path, f"client_pcap_BL_{device}_{ports[0]}_{ports[1]}_{current_datetime}_sock.pcap")
-tcpproc = subprocess.Popen([f"tcpdump -i any port '({ports[0]} or {ports[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
+tcpproc = subprocess.Popen([f"tcpdump -i any port '({ports[0]} or {ports[1]})' -w {pcap}"], preexec_fn=os.setpgrp)
 time.sleep(1)
 
 # ===================== wait for experiment end =====================
