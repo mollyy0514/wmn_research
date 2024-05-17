@@ -91,6 +91,32 @@ pcap_path = '/home/wmnlab/temp'
 # ===================== Global Variables =====================
 stop_threads = False
 
+# ===================== traffic capture =====================
+
+tcpproc_list = []
+
+def capture_traffic(devices, ports, pcap_path, current_datetime):
+    for device, port in zip(devices, ports):
+        pcap = os.path.join(pcap_path, f"server_pcap_BL_{device}_{port[0]}_{port[1]}_{current_datetime}_sock.pcap")
+        tcpproc = subprocess.Popen([f"tcpdump -i any port '({port[0]} or {port[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
+        # tcpproc = subprocess.Popen([f"sudo tcpdump -i any port '({port[0]} or {port[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
+        tcpproc_list.append(tcpproc)
+    time.sleep(1)
+
+def kill_traffic_capture():
+    print('Killing tcpdump process...')
+    for tcpproc in tcpproc_list:
+        os.killpg(os.getpgid(tcpproc.pid), signal.SIGTERM)
+        # os.system(f"sudo kill -15 {tcpproc.pid}")
+    time.sleep(1)
+
+now = dt.datetime.today()
+current_datetime = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
+current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two digit
+current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
+
+capture_traffic(devices, ports, pcap_path, current_datetime)
+
 # ===================== setup socket =====================
 
 os.system("echo wmnlab | sudo -S su")
@@ -122,32 +148,6 @@ for dev, port in zip(devices, ports):
     except KeyboardInterrupt:
         print("KeyboardInterrupt:", KeyboardInterrupt)
         stop_threads = True
-# ===================== traffic capture =====================
-
-tcpproc_list = []
-
-def capture_traffic(devices, ports, pcap_path, current_datetime):
-    for device, port in zip(devices, ports):
-        pcap = os.path.join(pcap_path, f"server_pcap_BL_{device}_{port[0]}_{port[1]}_{current_datetime}_sock.pcap")
-        tcpproc = subprocess.Popen([f"tcpdump -i any port '({port[0]} or {port[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
-        # tcpproc = subprocess.Popen([f"sudo tcpdump -i any port '({port[0]} or {port[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
-        tcpproc_list.append(tcpproc)
-    time.sleep(1)
-
-def kill_traffic_capture():
-    print('Killing tcpdump process...')
-    for tcpproc in tcpproc_list:
-        os.killpg(os.getpgid(tcpproc.pid), signal.SIGTERM)
-        # os.system(f"sudo kill -15 {tcpproc.pid}")
-    time.sleep(1)
-
-now = dt.datetime.today()
-current_datetime = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
-current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two digit
-current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
-
-capture_traffic(devices, ports, pcap_path, current_datetime)
-
 # ===================== wait for experiment end =====================
 
 def cleanup_and_exit():
