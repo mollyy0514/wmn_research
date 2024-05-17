@@ -98,19 +98,22 @@ os.system("echo wmnlab | sudo -S su")
 def start_server(port):
     try:
         # Start iPerf3 server
-        subprocess.Popen(["iperf3", "-s", "-p", str(port)], preexec_fn=os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-s", "-p", str(port)], preexec_fn=os.setpgrp)
         print(f"iPerf3 server started successfully on port {port}.")
+        return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 server: {e}")
 
 # Setup connections
-server_processes = []
+server_proc_list = []
 
 for dev, port in zip(devices, ports):
     try:
         # Start iPerf3 servers
-        server_processes.append(start_server(port=port[0]))
-        server_processes.append(start_server(port=port[1]))
+        ul_server_proc = start_server(port=port[0])
+        dl_server_proc = start_server(port=port[1])
+        server_proc_list.append(ul_server_proc)
+        server_proc_list.append(dl_server_proc)
 
         # Wait for keyboard interrupt
         while True:
@@ -149,7 +152,7 @@ capture_traffic(devices, ports, pcap_path, current_datetime)
 
 def cleanup_and_exit():
     # Close sockets
-    for proc in server_processes:
+    for proc in server_proc_list:
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
 
     # Kill tcpdump process
