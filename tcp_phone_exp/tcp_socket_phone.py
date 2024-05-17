@@ -66,14 +66,14 @@ stop_threads = False
 def start_ul_client(host, port, packet_len, bitrate):
     try:
         # Start iPerf3 server
-        subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate)])
+        subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate)], shell=True, preexec_fn = os.setpgrp)
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for uplink: {e}")
 
 def start_dl_client(host, port, packet_len, bitrate):
     try:
         # Start iPerf3 server
-        subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-R"])
+        subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-R"], shell=True, preexec_fn = os.setpgrp)
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for downlink: {e}")
 

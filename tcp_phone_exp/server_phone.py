@@ -98,7 +98,7 @@ os.system("echo wmnlab | sudo -S su")
 def start_server(port):
     try:
         # Start iPerf3 server
-        subprocess.Popen(["iperf3", "-s", "-p", str(port)])
+        subprocess.Popen(["iperf3", "-s", "-p", str(port)], shell=True, preexec_fn=os.setpgrp)
         print(f"iPerf3 server started successfully on port {port}.")
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 server: {e}")
