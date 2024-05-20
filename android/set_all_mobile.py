@@ -83,14 +83,14 @@ for device, info in zip(devices, devices_info):
     # UDP_phone_exp
     su_cmd = 'rm -rf /sdcard/udp_phone_exp && cp -r /data/data/com.termux/files/home/wmn_research/udp_phone_exp /sdcard'
     adb_cmd = f"su -c '{su_cmd}'"
-    device.shell(su_cmd)
+    device.shell(adb_cmd)
     print(info[2], 'Update udp_phone_exp!')
     print("-----------------------------------")
     
     # TCP_phone_exp
     su_cmd = 'rm -rf /sdcard/tcp_phone_exp && cp -r /data/data/com.termux/files/home/wmn_research/tcp_phone_exp /sdcard'
     adb_cmd = f"su -c '{su_cmd}'"
-    device.shell(su_cmd)
+    device.shell(adb_cmd)
     print(info[2], 'Update tcp_phone_exp!')
     print("-----------------------------------")
 
