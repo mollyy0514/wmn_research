@@ -120,7 +120,7 @@ capture_traffic(devices, ports, pcap_path, current_datetime)
 
 # ===================== setup socket =====================
 
-def start_server(port, time):
+def start_server(port):
     try:
         # Start iPerf3 server
         proc = subprocess.Popen(["iperf3", "-s", "-p", str(port)], preexec_fn=os.setpgrp)
