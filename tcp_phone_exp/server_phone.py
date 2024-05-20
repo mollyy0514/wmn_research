@@ -123,7 +123,7 @@ capture_traffic(devices, ports, pcap_path, current_datetime)
 def start_server(port, time):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-s", "-p", str(port), "-t", str(time)], preexec_fn=os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-s", "-p", str(port)], preexec_fn=os.setpgrp)
         print(f"iPerf3 server started successfully on port {port}.")
         return proc
     except subprocess.CalledProcessError as e:
@@ -135,8 +135,8 @@ server_proc_list = []
 for dev, port in zip(devices, ports):
     try:
         # Start iPerf3 servers
-        ul_server_proc = start_server(port[0], total_time)
-        dl_server_proc = start_server(port[1], total_time)
+        ul_server_proc = start_server(port[0])
+        dl_server_proc = start_server(port[1])
         server_proc_list.append(ul_server_proc)
         server_proc_list.append(dl_server_proc)
 
