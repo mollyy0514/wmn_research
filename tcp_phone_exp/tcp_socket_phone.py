@@ -80,7 +80,7 @@ time.sleep(1)
 def start_ul_client(host, port, packet_len, bitrate, time):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time)], preexec_fn = os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(250), "-b", str(bitrate), "-t", str(time)], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for uplink: {e}")
@@ -88,7 +88,7 @@ def start_ul_client(host, port, packet_len, bitrate, time):
 def start_dl_client(host, port, packet_len, bitrate, time):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(250), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for downlink: {e}")
