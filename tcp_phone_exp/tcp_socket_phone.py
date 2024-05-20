@@ -63,10 +63,10 @@ pcap_path = '/sdcard/experiment_log'
 stop_threads = False
 
 # ===================== setup socket =====================
-def start_ul_client(host, port, packet_len, bitrate):
+def start_ul_client(host, port, packet_len, bitrate, time):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate)], preexec_fn = os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time)], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for uplink: {e}")
@@ -74,15 +74,15 @@ def start_ul_client(host, port, packet_len, bitrate):
 def start_dl_client(host, port, packet_len, bitrate):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-R"], preexec_fn = os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for downlink: {e}")
 
 try:
     # Setup connections
-    rx_proc = start_ul_client(HOST, ports[0], length_packet, bitrate)
-    tx_proc = start_dl_client(HOST, ports[1], length_packet, bitrate)
+    rx_proc = start_ul_client(HOST, ports[0], length_packet, bitrate, total_time)
+    tx_proc = start_dl_client(HOST, ports[1], length_packet, bitrate, total_time)
 except KeyboardInterrupt:
     print("KeyboardInterrupt:", KeyboardInterrupt)
     stop_threads = True
