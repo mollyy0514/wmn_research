@@ -71,7 +71,7 @@ def start_ul_client(host, port, packet_len, bitrate, time):
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for uplink: {e}")
 
-def start_dl_client(host, port, packet_len, bitrate):
+def start_dl_client(host, port, packet_len, bitrate, time):
     try:
         # Start iPerf3 server
         proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
