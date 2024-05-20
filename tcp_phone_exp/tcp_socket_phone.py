@@ -62,11 +62,25 @@ pcap_path = '/sdcard/experiment_log'
 # ===================== Global Variables =====================
 stop_threads = False
 
+# ===================== traffic capture =====================
+
+if not os.path.isdir(pcap_path):
+   os.system(f'mkdir {pcap_path}')
+
+now = dt.datetime.today()
+current_datetime = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
+current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two digit
+current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
+
+pcap = os.path.join(pcap_path, f"client_pcap_BL_{device}_{ports[0]}_{ports[1]}_{current_datetime}_sock.pcap")
+tcpproc = subprocess.Popen([f"tcpdump -i any port '({ports[0]} or {ports[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
+time.sleep(1)
+
 # ===================== setup socket =====================
 def start_ul_client(host, port, packet_len, bitrate, time):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time)], preexec_fn = os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(250), "-b", str(bitrate), "-t", str(time)], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for uplink: {e}")
@@ -74,7 +88,7 @@ def start_ul_client(host, port, packet_len, bitrate, time):
 def start_dl_client(host, port, packet_len, bitrate, time):
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(250), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for downlink: {e}")
@@ -90,20 +104,6 @@ except KeyboardInterrupt:
 print(f'Create UL socket for {device} at {HOST}:{ports[0]}.')
 print(f'Create DL socket for {device} at {HOST}:{ports[1]}.')
 
-time.sleep(1)
-
-# ===================== traffic capture =====================
-
-if not os.path.isdir(pcap_path):
-   os.system(f'mkdir {pcap_path}')
-
-now = dt.datetime.today()
-current_datetime = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
-current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two digit
-current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
-
-pcap = os.path.join(pcap_path, f"client_pcap_BL_{device}_{ports[0]}_{ports[1]}_{current_datetime}_sock.pcap")
-tcpproc = subprocess.Popen([f"tcpdump -i any port '({ports[0]} or {ports[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
 time.sleep(1)
 
 # ===================== wait for experiment end =====================
