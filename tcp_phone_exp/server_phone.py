@@ -129,24 +129,29 @@ def start_server(port):
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 server: {e}")
 
-# Setup connections
-server_proc_list = []
-
-for dev, port in zip(devices, ports):
+def start_servers_for_device(device, port):
+    global stop_threads
     try:
-        # Start iPerf3 servers
         ul_server_proc = start_server(port[0])
         dl_server_proc = start_server(port[1])
         server_proc_list.append(ul_server_proc)
         server_proc_list.append(dl_server_proc)
-
+        
         # Wait for keyboard interrupt
-        while True:
+        while not stop_threads:
             pass
 
     except KeyboardInterrupt:
-        print("KeyboardInterrupt:", KeyboardInterrupt)
+        print(f"KeyboardInterrupt detected in device {device}")
         stop_threads = True
+
+# Setup connections
+server_proc_list = []
+threads = []
+for dev, port in zip(devices, ports):
+    thread = threading.Thread(target=start_servers_for_device, args=(dev, port))
+    threads.append(thread)
+    thread.start()
 # ===================== wait for experiment end =====================
 
 def cleanup_and_exit():
