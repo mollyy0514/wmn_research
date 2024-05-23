@@ -76,11 +76,11 @@ procs = []
 for device_adb, device, port, serial in zip(devices_adb, devices, ports, serials):
     print(device, serial, "\n")
     portString = f"{port[0]},{port[1]}"
-    device_adb.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research && chmod +x ./quic_phone_exp/socket/quic_tcpdump.py'")
-    client_tcpdump_cmd = f"cd /data/data/com.termux/files/home/wmn_research && python3 ./quic_phone_exp/socket/quic_tcpdump.py -d {device} -p {portString}"
+    device_adb.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research/quic_phone_exp && chmod +x ./socket/quic_tcpdump.py'")
+    client_tcpdump_cmd = f"cd /data/data/com.termux/files/home/wmn_research/quic_phone_exp && python3 ./socket/quic_tcpdump.py -d {device} -p {portString}"
     adb_tcpdump_cmd = f"su -c '{client_tcpdump_cmd}'"
     
-    device_adb.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research && chmod +x ./quic_phone_exp/client_phone/client_socket.sh'")
+    device_adb.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research/quic_phone_exp && chmod +x ./client_phone/client_socket.sh'")
     su_cmd = f'cd /data/data/com.termux/files/home/wmn_research && ./quic_phone_exp/client_phone/client_socket.sh {device} {portString} {total_time} {bitrate} {length}'
     adb_cmd = f"su -c '{su_cmd}'"
 
