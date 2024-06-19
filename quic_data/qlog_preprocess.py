@@ -9,14 +9,14 @@ from datetime import datetime, timedelta
 from pytictoc import TicToc
 
 ##### ---------- USER SETTINGS ---------- #####
-# database = "/Volumes/mollyT7/MOXA/"
+database = "/Volumes/mollyT7/MOXA/"
 # database = "/home/wmnlab/Documents/r12921105"
-database = "/Users/molly/Desktop/"
-dates = ["2024-04-11"]
+# database = "/Users/molly/Desktop/"
+dates = ["2024-05-23"]
 exp_names = {
-    "QUIC-inf": (1, ["#{:02d}".format(i + 1) for i in range(1)]),
+    "QUIC-inf": (6, ["#{:02d}".format(i + 1) for i in range(6)]),
     }
-device_names = ["sm01"]
+device_names = ["sm00"]
 
 device_to_port = {"sm00": [5200, 5201], 
                   "sm01": [5202, 5203],
@@ -104,15 +104,35 @@ def JsonToCsv(json_entry, csv_file_path):
 def GetStartTime(json_data):
     # unit: ms
     refTime = json_data[0]["trace"]["common_fields"]["reference_time"]
+    refTime = pd.to_datetime(refTime, unit='ms')
+    print(type(refTime), refTime)
+    refTime = refTime + pd.Timedelta(hours=8)
+    refTime = refTime.strftime('%Y-%m-%d %H:%M:%S.%f')
     return refTime
+# Find the closest time delta for syncing time to server
+def GetTimeDelta(time):
+    if isinstance(time, str):
+        tmp_time = datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f')
+    tmp_diff_list = [abs(tmp_time - t[0]) for t in time_diff_list]
+    min_idx = tmp_diff_list.index(min(tmp_diff_list))
+    mean_time_diff = time_diff_list[min_idx][1]
+    return mean_time_diff
 # Add ['epoch_time'] and ['timestamp'] column in df
-def ProcessTime(df, reference_time):
+def ProcessTime(df, reference_time, is_client):
+    reference_time = pd.to_datetime(reference_time)
     # Extract the "time" values from the DataFrame
     original_times = (df['time'].astype(float))
 
     # Calculate "epoch_time" and convert to timestamps
-    epoch_times = (reference_time + original_times)
-    timestamps = pd.to_datetime(epoch_times, unit='ms').dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+    timedeltas = pd.to_timedelta(original_times, unit='ms')
+    epoch_times = reference_time + timedeltas
+    # epoch_times += pd.Timedelta(hours=8)
+    timestamps = epoch_times.dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+    # match the client timestamps to the closet estimated time delta
+    if is_client:
+        for t in timestamps:
+            GetTimeDelta(t)
 
     df['epoch_time'] = epoch_times
     df['timestamp'] = timestamps
@@ -135,14 +155,14 @@ def update_pk_sent_rows(row):
     congestion_window = row['cwnd']
 
     for ack_range in acked_ranges:
-        print(ack_range[0], ack_range[-1])
+        # print(ack_range[0], ack_range[-1])
         start_packet, end_packet = ack_range[0], ack_range[-1]
         start_index = -1
         tmp = start_packet
         while start_index == -1:
             try:
                 start_index = packet_number_index_map[tmp]
-                print(start_index, packet_number_index_map[tmp])
+                # print(start_index, packet_number_index_map[tmp])
             except KeyError:
                 if (tmp + 1) <= end_packet:
                     tmp += 1
@@ -153,7 +173,7 @@ def update_pk_sent_rows(row):
         while end_index == -1:
             try:
                 end_index = packet_number_index_map[tmp]
-                print(end_index, packet_number_index_map[tmp])
+                # print(end_index, packet_number_index_map[tmp])
             except KeyError:
                 if (tmp - 1) >= start_packet:
                     tmp -= 1
@@ -294,7 +314,7 @@ def find_dl_rcv_file(database, date, exp, device):
 # Classify lost packet
 def get_loss_data(lost_df, received_df):
     # Check if each row in ul_lost_df['packet_number'] is present in ul_received_df['packet_number']
-    lost_in_received = lost_df['pn'].isin(received_df['pn'])
+    lost_in_received = lost_df['packet_number'].isin(received_df['packet_number'])
 
     # Get the rows in ul_lost_df where the packet number is present in ul_received_df
     exec_lat_df = lost_df[lost_in_received]
@@ -342,7 +362,7 @@ for date in dates:
             with open(sync_file_name, 'r') as file:
                 data = json.load(file)
             # Extract values from the dictionary
-            time_diff_list = list(data.values())
+            time_diff_list = [(datetime.strptime(k, '%Y-%m-%d %H:%M:%S.%f'), v) for k, v in data.items()]
             ##### ---------- READ TIME SYNC FILE ---------- #####
 
             ##### ---------- GET QLOG FILE ---------- #####
@@ -375,7 +395,7 @@ for date in dates:
                 received_df = pd.read_csv(received_csv_file)
 
                 ##### ---------- SYNC TIME TO SERVER TIME ---------- #####
-                mean_time_diff = time_diff_list[exp_round-1] * 1000
+                mean_time_diff = 0
                 # No matter downlink or uplink, the file time that need to change is client side.
                 if int(port)%2 == 0:    # UL
                     clientStartTime = GetStartTime(sent_json_entry)
@@ -383,32 +403,40 @@ for date in dates:
                     serverStartTime = GetStartTime(received_json_entry)
                     print(serverStartTime)
 
-                    senderRefTime = clientStartTime + mean_time_diff
+                    mean_time_diff = GetTimeDelta(clientStartTime)
+                    clientStartTime = pd.to_datetime(clientStartTime, format='%Y-%m-%d %H:%M:%S.%f')
+                    senderRefTime = clientStartTime + pd.Timedelta(seconds=mean_time_diff)
                     rcverRefTime = serverStartTime
 
+                    sent_df = ProcessTime(sent_df, senderRefTime, is_client=True)
+                    received_df = ProcessTime(received_df, rcverRefTime, is_client=False)
                 else:   # DL
                     clientStartTime = GetStartTime(received_json_entry)
                     print(clientStartTime)
                     serverStartTime = GetStartTime(sent_json_entry)
                     print(serverStartTime)
-                    startTimeDiff = (clientStartTime - serverStartTime) + mean_time_diff
 
+                    mean_time_diff = GetTimeDelta(clientStartTime)
                     senderRefTime = serverStartTime
-                    rcverRefTime = clientStartTime + mean_time_diff
+                    clientStartTime = pd.to_datetime(clientStartTime, format='%Y-%m-%d %H:%M:%S.%f')
+                    rcverRefTime = clientStartTime + pd.Timedelta(seconds=mean_time_diff)
+
+                    sent_df = ProcessTime(sent_df, senderRefTime, is_client=False)
+                    received_df = ProcessTime(received_df, rcverRefTime, is_client=True)
                 
                 # Add 8 hours to both epoch times and timestamps to match UMT+8
                 # Also sync time with server
-                sent_df = ProcessTime(sent_df, senderRefTime)
-                epoch_times_gmt8 = sent_df["epoch_time"] + 8 * 3600 * 1000
-                sent_df["epoch_time"] = epoch_times_gmt8
-                timestamps_gmt8 = pd.to_datetime(epoch_times_gmt8, unit='ms').dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                sent_df["timestamp"] = timestamps_gmt8
+                # sent_df = ProcessTime(sent_df, senderRefTime)
+                # epoch_times_gmt8 = sent_df["epoch_time"] + 8 * 3600 * 1000
+                # sent_df["epoch_time"] = epoch_times_gmt8
+                # timestamps_gmt8 = pd.to_datetime(epoch_times_gmt8, unit='ms').dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+                # sent_df["timestamp"] = timestamps_gmt8
                 
-                received_df = ProcessTime(received_df, rcverRefTime)
-                epoch_times_gmt8 = received_df["epoch_time"] + 8 * 3600 * 1000
-                received_df["epoch_time"] = epoch_times_gmt8
-                timestamps_gmt8 = pd.to_datetime(epoch_times_gmt8, unit='ms').dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-                received_df["timestamp"] = timestamps_gmt8
+                # received_df = ProcessTime(received_df, rcverRefTime)
+                # epoch_times_gmt8 = received_df["epoch_time"] + 8 * 3600 * 1000
+                # received_df["epoch_time"] = epoch_times_gmt8
+                # timestamps_gmt8 = pd.to_datetime(epoch_times_gmt8, unit='ms').dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+                # received_df["timestamp"] = timestamps_gmt8
 
 
                 ## Add RealTimeStamp to CSV
@@ -426,8 +454,8 @@ for date in dates:
                 metrics_sent_rows = sent_df[(sent_df['name'] == 'recovery:mtrc_upd') & (sent_df['data'].str.contains("{'bb_in_flt':"))]
                 metrics_ack_rows = sent_df[(sent_df['name'] == 'recovery:mtrc_upd') & (sent_df['data'].str.contains("'lrtt':"))]
                 total_sent_rows = sent_df[(sent_df['name'] == 'transport:p_sent')]
-                pk_sent_rows = sent_df[(sent_df['name'] == 'transport:p_sent') & (sent_df['data'].str.contains("'frame_type': 'sm'"))]
-                rcv_ack_rows = sent_df[(sent_df['name'] == 'transport:p_rcv') & (sent_df['data'].str.contains("'frame_type': 'ack'")) & (sent_df['data'].str.contains("'p_t': '1RTT'"))]
+                pk_sent_rows = sent_df[(sent_df['name'] == 'transport:p_sent') & (sent_df['data'].str.contains("'fr_t': 'sm'"))]
+                rcv_ack_rows = sent_df[(sent_df['name'] == 'transport:p_rcv') & (sent_df['data'].str.contains("'fr_t': 'ack'")) & (sent_df['data'].str.contains("'p_t': '1RTT'"))]
                 lost_rows = sent_df[sent_df['name'] == 'recovery:p_lost']
 
                 # Get the count of rows
@@ -435,7 +463,7 @@ for date in dates:
                 rcv_ack_cnt = len(rcv_ack_rows)
 
                 # receiver side data
-                pk_rcv_rows = received_df[(received_df['name'] == "transport:p_rcv") & (received_df['data'].str.contains("'frame_type': 'sm'"))]
+                pk_rcv_rows = received_df[(received_df['name'] == "transport:p_rcv") & (received_df['data'].str.contains("'fr_t': 'sm'"))]
                 pk_rcv_rows = pk_rcv_rows.reset_index(drop=True)
                 ##### ---------- PARSE THE DATA TYPE ---------- #####
 
@@ -475,8 +503,8 @@ for date in dates:
                 metrics_sent_rows[['bb_in_flt', 'p_in_flt']] = metrics_sent_rows['data'].apply(
                     lambda x: pd.Series(ast.literal_eval(x)) if isinstance(x, str) else pd.Series([None, None]))
                 # Add bytes_in_flight & packets_in_flight to pk_sent_rows
-                pk_sent_rows['bb_in_flt'] = metrics_sent_rows['bb_in_flt']
-                pk_sent_rows['p_in_flt'] = metrics_sent_rows['p_in_flt']
+                pk_sent_rows['bytes_in_flight'] = metrics_sent_rows['bb_in_flt']
+                pk_sent_rows['packets_in_flight'] = metrics_sent_rows['p_in_flt']
                 ##### ---------- CONCAT `transport:packet_sent` & `recovery:metrics_updated` ---------- ######
                         
                 ##### --------- CONCAT `transport:packet_received` & `recovery:metrics_updated` ---------- #####
@@ -543,11 +571,12 @@ for date in dates:
                 ##### ---------- MAPPING ACK: "packet_number", "offset", "length" ---------- #####
                 acked_ranges_series = rcv_ack_rows['data']
                 acked_ranges_list = []
+                # print(acked_ranges_series.iloc[0])
                 for i in range(len(acked_ranges_series)):
                     s = acked_ranges_series.iloc[i]
                     data_dict = json.loads(s.replace("\'", "\""))
                     # Extract 'acked_ranges' from all frames
-                    acked_ranges = [range_entry for frame in data_dict['fr'] if 'acked_ranges' in frame for range_entry in frame['acked_ranges']]
+                    acked_ranges = [range_entry for frame in data_dict['frames'] if 'acked_ranges' in frame for range_entry in frame['acked_ranges']]
                     acked_ranges_list.append(acked_ranges)
 
                 acked_ranges_df = pd.DataFrame({"acked_ranges": acked_ranges_list})
@@ -663,9 +692,10 @@ for date in dates:
                 csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/processed_rcv_{time}_{port}.csv"
                 processed_rcv_df.to_csv(csv_file_path, sep='@')
                 ##### ---------- PROCESSED RECEIVED FILE ---------- #####
-
+                print("DATA FILES PROCESSED. \n")
 
 ##### ---------- CALCULATE LOST PACKET STATISTICS ---------- #####
+print("CALCULATING STATISTICS")
 all_ul_sender_files = []
 all_ul_rcv_files = []
 all_ul_pkl_files = []
