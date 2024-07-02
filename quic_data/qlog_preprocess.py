@@ -121,12 +121,12 @@ def GetTimeDelta(time):
 def ProcessTime(df, reference_time, is_client):
     reference_time = pd.to_datetime(reference_time)
     # Extract the "time" values from the DataFrame
-    original_times = (df['time'].astype(float))
+    original_times = df['time'].astype(float)
 
     # Calculate "epoch_time" and convert to timestamps
     timedeltas = pd.to_timedelta(original_times, unit='ms')
     epoch_times = reference_time + timedeltas
-    # epoch_times += pd.Timedelta(hours=8)
+    epoch_times_unix = epoch_times.view('int64')  / 10**6
     timestamps = epoch_times.dt.strftime('%Y-%m-%d %H:%M:%S.%f')
 
     # match the client timestamps to the closet estimated time delta
@@ -134,7 +134,7 @@ def ProcessTime(df, reference_time, is_client):
         for t in timestamps:
             GetTimeDelta(t)
 
-    df['epoch_time'] = epoch_times
+    df['epoch_time'] = epoch_times_unix
     df['timestamp'] = timestamps
 
     return df
@@ -197,12 +197,16 @@ def find_ul_file(database, date, exp, device):
         folder_path = os.path.join(database, date, exp, device, exp_round, 'data')
         for root, dirs, files in os.walk(folder_path):
             for file in files:
-                if "processed_rcv" in file:
-                    # Extract the numbers from the file name
-                    numbers = file.split("_")[3]
-                    if str(ports[0]) in numbers:
+                try:
+                    if file.startswith("ul_processed_sent"):
                         ul_files.append(os.path.join(root, file))
-                        break  # Exit the inner loop once the port is found
+                except:
+                    if "processed_sent" in file:
+                        # Extract the numbers from the file name
+                        numbers = file.split("_")[3]
+                        if str(ports[0]) in numbers:
+                            ul_files.append(os.path.join(root, file))
+                            break  # Exit the inner loop once the port is found
     return ul_files
 def find_dl_file(database, date, exp, device):
     dl_files = []
@@ -212,12 +216,16 @@ def find_dl_file(database, date, exp, device):
         folder_path = os.path.join(database, date, exp, device, exp_round, 'data')
         for root, dirs, files in os.walk(folder_path):
             for file in files:
-                if "processed_rcv" in file:
-                    # Extract the numbers from the file name
-                    numbers = file.split("_")[3]
-                    if str(ports[1]) in numbers:
+                try:
+                    if file.startswith("dl_processed_sent"):
                         dl_files.append(os.path.join(root, file))
-                        break  # Exit the inner loop once the port is found
+                except:
+                    if "processed_sent" in file:
+                        # Extract the numbers from the file name
+                        numbers = file.split("_")[3]
+                        if str(ports[1]) in numbers:
+                            dl_files.append(os.path.join(root, file))
+                            break  # Exit the inner loop once the port is found
     return dl_files
 def find_ul_loss_file(database, date, exp, device):
     ul_loss_files = []
@@ -310,6 +318,27 @@ def find_dl_rcv_file(database, date, exp, device):
                         dl_files.append(os.path.join(root, file))
                         break  # Exit the inner loop once the port is found
     return dl_files
+
+def find_lost_pk_file(database, date, exp, device):
+    ul_files = []
+    dl_files = []
+    exp_round, exp_list = exp_names[exp]
+    for exp_round in exp_list:
+        folder_path = os.path.join(database, date, exp, device, exp_round, 'data')
+        for root, dirs, files in os.walk(folder_path):
+            ul_file = ""
+            dl_file = ""
+            for file in files:
+                if file.startswith("ul_real_lost_pk"):
+                    ul_file = os.path.join(root, file)
+                if file.startswith("dl_real_lost_pk"):
+                    dl_file = os.path.join(root, file)
+                    
+            if ul_file != "" and dl_file != "":
+                ul_files.append(ul_file)
+                dl_files.append(dl_file)
+
+    return ul_files, dl_files
 
 # Classify lost packet
 def get_loss_data(lost_df, received_df):
@@ -636,7 +665,7 @@ for date in dates:
                 lost_rows['trigger'] = lost_rows['data'].apply(lambda x: ast.literal_eval(x)['trigger'] if isinstance(x, str) else None)
                 # Export packet lost file
                 lost_pk_csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/middle/lost_pk_{time}_{port}.csv"
-                lost_rows.to_csv(lost_pk_csv_file_path, index=False)
+                
 
                 # Set to True if the packet is lost
                 pk_sent_rows['packet_lost'] = False
@@ -653,9 +682,21 @@ for date in dates:
                 ##### ---------- PROCESSED SENT FILE ---------- #####
                 cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'data']
                 processed_sent_df = pk_sent_rows[cols]
-                csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/processed_sent_{time}_{port}.csv"
+                processed_sent_df.rename(columns={'timestamp': 'Timestamp'}, inplace=True)
+                if port % 2 == 0:
+                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/ul_processed_sent_{time}.csv"
+                else:
+                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/dl_processed_sent_{time}.csv"
                 processed_sent_df.to_csv(csv_file_path, sep='@', index=False)
                 ##### ---------- PROCESSED SENT FILE ---------- #####
+
+                ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
+                lost_rows.rename(columns={'timestamp': 'lost_timestamp'}, inplace=True)
+                lost_rows['Timestamp'] = None
+                merged_df = pd.merge_asof(lost_rows.sort_values('packet_number'), processed_sent_df[['Timestamp', 'packet_number']], on='packet_number')
+                lost_rows['Timestamp'] = merged_df['timestamp_y']
+                lost_rows.to_csv(lost_pk_csv_file_path, index=False)
+                ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
 
                 ##### ---------- RECEIVER SIDE DATA ---------- #####
                 pk_rcv_df = pk_rcv_rows.reset_index(drop=True)
@@ -689,7 +730,11 @@ for date in dates:
                 ##### ---------- PROCESSED RECEIVED FILE ---------- #####
                 cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'data']
                 processed_rcv_df = pk_rcv_df[cols]
-                csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/processed_rcv_{time}_{port}.csv"
+                processed_rcv_df.rename(columns={'timestamp': 'Timestamp'}, inplace=True)
+                if port % 2 == 0:
+                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/ul_processed_rcv_{time}.csv"
+                else:
+                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/dl_processed_rcv_{time}.csv"
                 processed_rcv_df.to_csv(csv_file_path, sep='@')
                 ##### ---------- PROCESSED RECEIVED FILE ---------- #####
                 print("DATA FILES PROCESSED. \n")
@@ -753,7 +798,7 @@ for i in range(len(all_dl_rcv_files)):
     dl_sender_df = pd.read_csv(all_dl_sender_files[i], sep=',')
     # dl_sent_df is raw file, dl_rcv_df is processed file
     dl_sent_df = dl_sender_df[(dl_sender_df['name'] == 'transport:p_sent')]
-    dl_data_df = dl_sent_df[dl_sent_df['data'].str.contains("'f_t': 'sm'")]
+    dl_data_df = dl_sent_df[dl_sent_df['data'].str.contains("'fr_t': 'sm'")]
     dl_rcv_df = pd.read_csv(all_dl_rcv_files[i], sep='@')
     dl_loss_df = pd.read_csv(all_dl_pkl_files[i])
     dl_exec_lat_df, dl_exec_reorder_df, dl_exec_time_df, dl_real_lost_df, dl_lost_reorder_df, dl_lost_time_df = get_loss_data(dl_loss_df, dl_rcv_df)
@@ -773,3 +818,46 @@ for i in range(len(all_dl_rcv_files)):
     statistics_directory = "/".join(parts)
     dl_statistics.to_csv(f"{statistics_directory}/dl_statistics.csv", index=False)
 ##### ---------- CALCULATE LOST PACKET STATISTICS ---------- #####
+
+##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES ---------- #####
+print("CONCATING PAKCET LOST DF WITH PROCESSED DF")
+all_data_files = {}
+# Iterate over dates, exps, and devices
+for exp in exp_names:
+    exp_data_files = {"ul_lost_file": [], "dl_lost_file": [], "ul_sent_file": [], "dl_sent_file": []}
+    exp_ul_lost_pk_files = []
+    exp_dl_lost_pk_files = []
+    for date in dates:
+        for device in device_names:
+            # Find "rrc" files for the current combination of date, exp, and device
+            exp_ul_lost_pk_files, exp_dl_lost_pk_files = find_lost_pk_file(database, date, exp, device)
+            ul_sent_files = find_ul_file(database, date, exp, device)
+            dl_sent_files = find_dl_file(database, date, exp, device)
+            exp_data_files["ul_lost_file"].extend(exp_ul_lost_pk_files)
+            exp_data_files["dl_lost_file"].extend(exp_dl_lost_pk_files)
+            exp_data_files["ul_sent_file"].extend(ul_sent_files)
+            exp_data_files["dl_sent_file"].extend(dl_sent_files)
+
+    all_data_files[exp] = exp_data_files
+
+cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger', 'data']
+for exp in exp_names:
+    for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["rrc_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
+        ul_lost_df = pd.read_csv(ul_lost_file, encoding="utf-8")
+        ul_sent_df = pd.read_csv(ul_sent_file, sep='@')
+        ul_merged_df = ul_sent_df.merge(ul_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
+        ul_merged_df[['excl', 'lost']] = ul_merged_df[['excl', 'lost']].fillna(False)
+        ul_processed_sent_df = ul_merged_df[cols]
+        # 'excat_excl': excl without lost, 'excl': exact_excl U lost
+        ul_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
+        ul_processed_sent_df.to_csv(ul_sent_file, sep='@')
+        
+        dl_lost_df = pd.read_csv(dl_lost_file, encoding="utf-8")
+        dl_sent_df = pd.read_csv(dl_sent_file, sep='@')
+        dl_merged_df = dl_sent_df.merge(dl_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
+        dl_merged_df[['excl', 'lost']] = dl_merged_df[['excl', 'lost']].fillna(False)
+        dl_processed_sent_df = dl_merged_df[cols]
+        # 'excat_excl': excl without lost, 'excl': exact_excl U lost
+        dl_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
+        dl_processed_sent_df.to_csv(dl_sent_file, sep='@')
+##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES ---------- #####

@@ -1,0 +1,13 @@
+*.txt
+*.csv
+*.pcap
+*.log
+*.mi2log
+*.pkl
+*.png
+*.jpg
+*.jpeg
+*.db
+.DS_Store
+test.py
+test.ipynb

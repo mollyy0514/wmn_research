@@ -120,10 +120,14 @@ capture_traffic(devices, ports, pcap_path, current_datetime)
 
 # ===================== setup socket =====================
 
-def start_server(port):
+def start_server(device, port):
+    if port % 2 == 0:
+        logfilename = os.path.join(pcap_path, f"iperf3_ul_server_{device}_{current_datetime}.txt")
+    else:
+        logfilename = os.path.join(pcap_path, f"iperf3_dl_server_{device}_{current_datetime}.txt")
     try:
         # Start iPerf3 server
-        proc = subprocess.Popen(["iperf3", "-s", "-p", str(port)], preexec_fn=os.setpgrp)
+        proc = subprocess.Popen(["iperf3", "-s", "-p", str(port), "--logfile", logfilename], preexec_fn=os.setpgrp)
         print(f"iPerf3 server started successfully on port {port}.")
         return proc
     except subprocess.CalledProcessError as e:
@@ -132,8 +136,8 @@ def start_server(port):
 def start_servers_for_device(device, port):
     global stop_threads
     try:
-        ul_server_proc = start_server(port[0])
-        dl_server_proc = start_server(port[1])
+        ul_server_proc = start_server(device, port[0])
+        dl_server_proc = start_server(device, port[1])
         server_proc_list.append(ul_server_proc)
         server_proc_list.append(dl_server_proc)
         

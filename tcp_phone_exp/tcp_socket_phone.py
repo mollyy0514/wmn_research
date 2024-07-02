@@ -78,23 +78,25 @@ time.sleep(1)
 
 # ===================== setup socket =====================
 def start_ul_client(host, port, packet_len, bitrate, time):
+    logfilename = os.path.join(pcap_path, f"iperf3_ul_client_{device}_{current_datetime}.txt")
     try:
         # Start iPerf3 ul client
         if bitrate == 0:
-            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-t", str(time)], preexec_fn = os.setpgrp)
+            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-t", str(time), "--logfile", logfilename], preexec_fn = os.setpgrp)
         else:
-            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time)], preexec_fn = os.setpgrp)
+            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "--logfile", logfilename], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for uplink: {e}")
 
 def start_dl_client(host, port, packet_len, bitrate, time):
+    logfilename = os.path.join(pcap_path, f"iperf3_dl_client_{device}_{current_datetime}.txt")
     try:
         # Start iPerf3 dl client
         if bitrate == 0:
-            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
+            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-t", str(time), "-R", "--logfile", logfilename], preexec_fn = os.setpgrp)
         else:
-            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "-R"], preexec_fn = os.setpgrp)
+            proc = subprocess.Popen(["iperf3", "-c", host, "-p", str(port), "-l", str(packet_len), "-b", str(bitrate), "-t", str(time), "-R", "--logfile", logfilename], preexec_fn = os.setpgrp)
         return proc
     except subprocess.CalledProcessError as e:
         print(f"Error starting iPerf3 client for downlink: {e}")
