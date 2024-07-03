@@ -74,10 +74,10 @@ func main() {
 	}
 
 	/* ---------- TCPDUMP ---------- */
-	for i := 0; i < len(portsList); i++ {
-		Start_server_tcpdump(*_password, portsList[i][0])
-		Start_server_tcpdump(*_password, portsList[i][1])
-	}
+	// for i := 0; i < len(portsList); i++ {
+	// 	Start_server_tcpdump(*_password, portsList[i][0])
+	// 	Start_server_tcpdump(*_password, portsList[i][1])
+	// }
 	/* ---------- TCPDUMP ---------- */
 	
 	// Sync between goroutines.
