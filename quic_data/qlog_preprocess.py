@@ -680,7 +680,7 @@ for date in dates:
                 ##### ---------- IDENTIFY LOST PACKETS ---------- #####
                         
                 ##### ---------- PROCESSED SENT FILE ---------- #####
-                cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'data']
+                cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost']
                 processed_sent_df = pk_sent_rows[cols]
                 processed_sent_df.rename(columns={'timestamp': 'Timestamp'}, inplace=True)
                 if port % 2 == 0:
@@ -728,7 +728,7 @@ for date in dates:
                 ##### ---------- RECEIVER SIDE DATA ---------- #####
 
                 ##### ---------- PROCESSED RECEIVED FILE ---------- #####
-                cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'data']
+                cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length']
                 processed_rcv_df = pk_rcv_df[cols]
                 processed_rcv_df.rename(columns={'timestamp': 'Timestamp'}, inplace=True)
                 if port % 2 == 0:
@@ -840,7 +840,7 @@ for exp in exp_names:
 
     all_data_files[exp] = exp_data_files
 
-cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger', 'data']
+cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger']
 for exp in exp_names:
     for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["rrc_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
         ul_lost_df = pd.read_csv(ul_lost_file, encoding="utf-8")
