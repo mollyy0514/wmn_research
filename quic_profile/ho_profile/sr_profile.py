@@ -9,9 +9,9 @@ import portion as P
 from tqdm import tqdm
 from scipy.integrate import quad
 from scipy.stats import gaussian_kde
-from myutils import *
+from allutils import *
 
-class Profile():
+class SrProfile():
     def __init__(
         self, filepaths, model_prefix='Test',
         model_id=None, model_dscp=None, save_path='.',

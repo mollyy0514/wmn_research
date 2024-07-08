@@ -77,10 +77,33 @@ def data_loader (
                                 os.path.join(data_dir, [s for s in os.listdir(data_dir) if s.endswith('ml1.csv') and not s.endswith('nr_ml1.csv')][0]),
                                 os.path.join(data_dir, [s for s in os.listdir(data_dir) if s.endswith('nr_ml1.csv')][0]),
                                 ])
-    ## TODO: elif mode == 'dr':
+    elif mode == 'dr':
+        for date, exps in exps_dict.items():
+            for exp_name, exp in exps.items():
+                exp_dir = os.path.join(root_dir, date, exp_name)
+                devices = list(exp['devices'].keys())
+                combos = list(it.combinations(devices, 2))
+                try:
+                    trips = ['#{:02d}'.format(s[0]) for s in exp['ods'][1:]]
+                except:
+                    trips = ['#{:02d}'.format(s) for s in list(exp['ods'].keys())[1:]]
+                for trip in trips:
+                    for dev1, dev2 in combos:
+                        data_dir1 = os.path.join(exp_dir, dev1, trip, 'data')
+                        data_dir2 = os.path.join(exp_dir, dev2, trip, 'data')
+                        _filepaths = []
+                        for i in range(2):
+                            _filepaths.append([
+                                os.path.join(locals()[f'data_dir{i+1}'], 'handover_info_log.csv'),
+                                os.path.join(locals()[f'data_dir{i+1}'], [s for s in os.listdir(locals()[f'data_dir{i+1}']) if s.startswith('dl_processed_sent')][0]),
+                                os.path.join(locals()[f'data_dir{i+1}'], [s for s in os.listdir(locals()[f'data_dir{i+1}']) if s.startswith('ul_processed_sent')][0]),
+                                os.path.join(locals()[f'data_dir{i+1}'], [s for s in os.listdir(locals()[f'data_dir{i+1}']) if s.endswith('rrc.csv')][0]),
+                                os.path.join(locals()[f'data_dir{i+1}'], [s for s in os.listdir(locals()[f'data_dir{i+1}']) if s.endswith('ml1.csv') and not s.endswith('nr_ml1.csv')][0]),
+                                os.path.join(locals()[f'data_dir{i+1}'], [s for s in os.listdir(locals()[f'data_dir{i+1}']) if s.endswith('nr_ml1.csv')][0]),
+                            ])
+                        filepaths.append(tuple(_filepaths))
     return filepaths
 
-# 
 def data_aligner(df, ho_df):
     empty_data = False
     

@@ -9,9 +9,9 @@ import portion as P
 from tqdm import tqdm
 from scipy.stats import kendalltau
 from sklearn.metrics import mean_squared_error
-from myutils import *
+from allutils import *
 
-class Eval:
+class SrEval:
     def __init__(
         self, filepaths, model_prefix='Test',
         model_id=None, model_dscp=None, load_path='.', save_path='.', path2results=None,

@@ -9,14 +9,15 @@ from datetime import datetime, timedelta
 from pytictoc import TicToc
 
 ##### ---------- USER SETTINGS ---------- #####
-database = "/Volumes/mollyT7/MOXA/"
+# database = "/Volumes/mollyT7/MOXA/"
 # database = "/home/wmnlab/Documents/r12921105"
 # database = "/Users/molly/Desktop/"
-dates = ["2024-05-23"]
+database = "/media/wmnlab/f1263a55-44b5-4bd1-a331-547c81df1dca/quic_data/"
+dates = ["2024-07-04"]
 exp_names = {
-    "QUIC-inf": (6, ["#{:02d}".format(i + 1) for i in range(6)]),
+    "QUIC-inf": (3, ["#{:02d}".format(i + 1) for i in range(3)]),
     }
-device_names = ["sm00"]
+device_names = ["sm00", "sm01"]
 
 device_to_port = {"sm00": [5200, 5201], 
                   "sm01": [5202, 5203],
@@ -126,7 +127,7 @@ def ProcessTime(df, reference_time, is_client):
     # Calculate "epoch_time" and convert to timestamps
     timedeltas = pd.to_timedelta(original_times, unit='ms')
     epoch_times = reference_time + timedeltas
-    epoch_times_unix = epoch_times.view('int64')  / 10**6
+    epoch_times_unix = epoch_times.astype('int64')  / 10**6
     timestamps = epoch_times.dt.strftime('%Y-%m-%d %H:%M:%S.%f')
 
     # match the client timestamps to the closet estimated time delta
@@ -200,6 +201,7 @@ def find_ul_file(database, date, exp, device):
                 try:
                     if file.startswith("ul_processed_sent"):
                         ul_files.append(os.path.join(root, file))
+                        break
                 except:
                     if "processed_sent" in file:
                         # Extract the numbers from the file name
@@ -219,6 +221,7 @@ def find_dl_file(database, date, exp, device):
                 try:
                     if file.startswith("dl_processed_sent"):
                         dl_files.append(os.path.join(root, file))
+                        break
                 except:
                     if "processed_sent" in file:
                         # Extract the numbers from the file name
@@ -296,12 +299,17 @@ def find_ul_rcv_file(database, date, exp, device):
         folder_path = os.path.join(database, date, exp, device, exp_round, 'data')
         for root, dirs, files in os.walk(folder_path):
             for file in files:
-                if "processed_rcv" in file:
-                    # Extract the numbers from the file name
-                    numbers = file.split("_")[3]
-                    if str(ports[0]) in numbers:
+                try:
+                    if file.startswith("ul_processed_rcv"):
                         ul_files.append(os.path.join(root, file))
-                        break  # Exit the inner loop once the port is found
+                        break
+                except:
+                    if "processed_rcv" in file:
+                        # Extract the numbers from the file name
+                        numbers = file.split("_")[3]
+                        if str(ports[0]) in numbers:
+                            ul_files.append(os.path.join(root, file))
+                            break  # Exit the inner loop once the port is found
     return ul_files
 def find_dl_rcv_file(database, date, exp, device):
     dl_files = []
@@ -311,12 +319,17 @@ def find_dl_rcv_file(database, date, exp, device):
         folder_path = os.path.join(database, date, exp, device, exp_round, 'data')
         for root, dirs, files in os.walk(folder_path):
             for file in files:
-                if "processed_rcv" in file:
-                    # Extract the numbers from the file name
-                    numbers = file.split("_")[3]
-                    if str(ports[1]) in numbers:
+                try:
+                    if file.startswith("dl_processed_rcv"):
                         dl_files.append(os.path.join(root, file))
-                        break  # Exit the inner loop once the port is found
+                        break
+                except:
+                    if "processed_rcv" in file:
+                        # Extract the numbers from the file name
+                        numbers = file.split("_")[3]
+                        if str(ports[1]) in numbers:
+                            dl_files.append(os.path.join(root, file))
+                            break  # Exit the inner loop once the port is found
     return dl_files
 
 def find_lost_pk_file(database, date, exp, device):
@@ -694,7 +707,7 @@ for date in dates:
                 lost_rows.rename(columns={'timestamp': 'lost_timestamp'}, inplace=True)
                 lost_rows['Timestamp'] = None
                 merged_df = pd.merge_asof(lost_rows.sort_values('packet_number'), processed_sent_df[['Timestamp', 'packet_number']], on='packet_number')
-                lost_rows['Timestamp'] = merged_df['timestamp_y']
+                lost_rows['Timestamp'] = merged_df['Timestamp_y']
                 lost_rows.to_csv(lost_pk_csv_file_path, index=False)
                 ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
 
@@ -840,9 +853,11 @@ for exp in exp_names:
 
     all_data_files[exp] = exp_data_files
 
+print(all_data_files)
+
 cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger']
 for exp in exp_names:
-    for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["rrc_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
+    for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
         ul_lost_df = pd.read_csv(ul_lost_file, encoding="utf-8")
         ul_sent_df = pd.read_csv(ul_sent_file, sep='@')
         ul_merged_df = ul_sent_df.merge(ul_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
