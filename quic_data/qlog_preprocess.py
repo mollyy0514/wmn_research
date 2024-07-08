@@ -876,3 +876,5 @@ for exp in exp_names:
         dl_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
         dl_processed_sent_df.to_csv(dl_sent_file, sep='@')
 ##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES ---------- #####
+
+print("===== ALL PROCESSING END! =====")

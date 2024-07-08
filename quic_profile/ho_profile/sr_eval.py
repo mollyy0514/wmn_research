@@ -423,5 +423,5 @@ class SrEval:
         fig.savefig(save_path, dpi=300, bbox_inches='tight')
 
         # Show plot
-        plt.show()
+        # plt.show()
         plt.close(fig)

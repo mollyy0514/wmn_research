@@ -552,7 +552,7 @@ class SrProfile():
             print(save_path)
             fig.savefig(save_path, dpi=300, bbox_inches='tight')
             
-            plt.show()
+            # plt.show()
             plt.close(fig)
     
     def save_models(self):
