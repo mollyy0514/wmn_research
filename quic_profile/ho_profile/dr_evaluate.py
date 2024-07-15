@@ -507,11 +507,11 @@ class DrEval:
                 continue
             
             if dirc == 'dl':
-                df1 = generate_dataframe(filepath[0][1], parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
-                df2 = generate_dataframe(filepath[1][1], parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
+                df1 = generate_dataframe(filepath[0][1], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
+                df2 = generate_dataframe(filepath[1][1], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
             else:
-                df1 = generate_dataframe(filepath[0][2], parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
-                df2 = generate_dataframe(filepath[1][2], parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
+                df1 = generate_dataframe(filepath[0][2], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
+                df2 = generate_dataframe(filepath[1][2], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
             
             df1, ho_df1, empty_data1 = data_aligner(df1, ho_df1)
             df2, ho_df2, empty_data2 = data_aligner(df2, ho_df2)
@@ -520,7 +520,7 @@ class DrEval:
                 print('*************** EMPTY DATA ***************')
                 continue
             
-            df = pd.merge(df1, df2, on='seq', how='inner').reset_index(drop=True)
+            df = pd.merge(df1, df2, on='packet_number', how='inner').reset_index(drop=True)
             df1 = df[['packet_number', 'Timestamp_x', 'lost_x', 'excl_x', 'latest_rtt_x']].rename(columns={'Timestamp_x': 'Timestamp', 'lost_x': 'lost', 'excl_x': 'excl', 'latest_rtt_x': 'latest_rtt'})
             df2 = df[['packet_number', 'Timestamp_y', 'lost_y', 'excl_y', 'latest_rtt_y']].rename(columns={'Timestamp_y': 'Timestamp', 'lost_y': 'lost', 'excl_y': 'excl', 'latest_rtt_y': 'latest_rtt'})
             
@@ -541,7 +541,7 @@ class DrEval:
                     avatar_ho_df2 = self.anchor_by_event(ho_df2.copy(), ho_df1, ans1)
                     ans2, _, _ = self.hist_method_dual_by_event(df2, avatar_ho_df2)
                 
-                ans = pd.merge(ans1, ans2, on='seq', how='inner').reset_index(drop=True)
+                ans = pd.merge(ans1, ans2, on='packet_number', how='inner').reset_index(drop=True)
                 ans[mets] = (ans[f'{mets}_x']) & (ans[f'{mets}_y'])
                 ans['Y'] = (ans['Y_x']) & (ans['Y_y'])
                 ans = ans[['packet_number', 'Timestamp_x', 'Timestamp_y', 'type_x', 'anchor_type', 'anchor_state', 'type_y',
