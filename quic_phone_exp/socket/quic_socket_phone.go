@@ -15,6 +15,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,6 +37,7 @@ var PORT_UL int
 var PORT_DL int
 
 func main() {
+	/* ---------- USER SETTING --------- */
 	// Define command-line flags
 	_host := flag.String("H", "140.112.20.183", "server ip address")
 	_devices := flag.String("d", "sm00", "list of devices (space-separated)")
@@ -45,7 +47,7 @@ func main() {
 	_duration := flag.Int("t", 300, "time in seconds to transmit for (default 1 hour = 3600 secs)")
 	// Parse command-line arguments
 	flag.Parse()
-	fmt.Printf("info %s %s %s %s %d %d \n", *_host, *_devices, *_ports, *_bitrate, *_length, *_duration)
+	fmt.Printf("INFO: %s %s %s %s %d %d \n", *_host, *_devices, *_ports, *_bitrate, *_length, *_duration)
 
 	duration := *_duration
 	portsList := strings.Split(*_ports, ",")
@@ -79,11 +81,13 @@ func main() {
 	} else {
 		SLEEPTIME = 0
 	}
+	/* ---------- USER SETTING --------- */
 
 	// wait for tcpdump
 	// sleep 1 sec to ensure the whle handshake process is captured
 	time.Sleep(1 * time.Second) 
 
+	// get current time
 	currentTime := time.Now()
 	y := currentTime.Year()
 	m := currentTime.Month()
@@ -91,13 +95,29 @@ func main() {
 	h := currentTime.Hour()
 	n := currentTime.Minute()
 	date := fmt.Sprintf("%02d%02d%02d", y, m, d)
+
+	// create directory in the name of current date
+	folderDate := fmt.Sprintf("%02d-%02d-%02d", y, m, d)
+	basePath := "/sdcard/experiment_log"
+	logFileDirPath := filepath.Join(basePath, folderDate)
+	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
+		err = os.MkdirAll(logFileDirPath, 0755) // 0755 is a common permission setting
+		if err != nil {
+			fmt.Println("Error creating directory:", err)
+			return
+		}
+		fmt.Println("Directory created:", logFileDirPath)
+	} else {
+		fmt.Println("Directory already exists:", logFileDirPath)
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 	for i := 0; i < 2; i++ {
 		go func(i int) { // capture packets in client side
 			if i == 0 { // UPLINK
 				// set generate configs
-				keyLogFileUl := fmt.Sprintf("/sdcard/experiment_log/tls_key_%s_%02d%02d_%02d.log", date, h, n, PORT_UL)
+				keyLogFileUl := fmt.Sprintf("%s/tls_key_%s_%02d%02d_%02d.log", logFileDirPath, date, h, n, PORT_UL)
 				var keyLogUl io.Writer
 				if len(keyLogFileUl) > 0 {
 					f, err := os.Create(keyLogFileUl)
@@ -115,7 +135,7 @@ func main() {
 				tlsConfig.RootCAs = poolUl
 				tlsConfig.KeyLogWriter = keyLogUl
 
-				quicConfig := GenQuicConfig(PORT_UL)
+				quicConfig := GenQuicConfig(PORT_UL, logFileDirPath)
 
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3s handshake timeout
 				defer cancel()
@@ -141,7 +161,7 @@ func main() {
 				/* ---------- TCPDUMP ---------- */
 			} else { // DOWNLINK
 				// set generate configs
-				keyLogFileDl := fmt.Sprintf("/sdcard/experiment_log/tls_key_%s_%02d%02d_%02d.log", date, h, n, PORT_DL)
+				keyLogFileDl := fmt.Sprintf("%s/tls_key_%s_%02d%02d_%02d.log", logFileDirPath, date, h, n, PORT_DL)
 				var keyLogDl io.Writer
 				if len(keyLogFileDl) > 0 {
 					f, err := os.Create(keyLogFileDl)
@@ -159,7 +179,7 @@ func main() {
 				tlsConfig.RootCAs = poolDl
 				tlsConfig.KeyLogWriter = keyLogDl
 
-				quicConfig := GenQuicConfig(PORT_DL)
+				quicConfig := GenQuicConfig(PORT_DL, logFileDirPath)
 
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3s handshake timeout
 				defer cancel()
@@ -178,7 +198,7 @@ func main() {
 				defer stream_dl.Close()
 
 				// Open or create a file to store the floats in TXT format
-				filepath := fmt.Sprintf("/sdcard/experiment_log/time_%s_%02d%02d_%d.txt", date, h, n, PORT_DL)
+				filepath := fmt.Sprintf("%s/time_%s_%02d%02d_%d.txt", logFileDirPath, date, h, n, PORT_DL)
 				timeFile, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					fmt.Println("Error opening file:", err)
@@ -239,7 +259,7 @@ func GenTlsConfig() *tls.Config {
 	}
 }
 
-func GenQuicConfig(port int) quic.Config {
+func GenQuicConfig(port int, logFileDirPath string) quic.Config {
 	return quic.Config{
 		Allow0RTT: true,
 		Tracer: func(ctx context.Context, p logging.Perspective, connID quic.ConnectionID) *logging.ConnectionTracer {
@@ -254,7 +274,7 @@ func GenQuicConfig(port int) quic.Config {
 			h := currentTime.Hour()
 			n := currentTime.Minute()
 			date := fmt.Sprintf("%02d%02d%02d", y, m, d)
-			filename := fmt.Sprintf("/sdcard/experiment_log/log_%s_%02d%02d_%d_%s.qlog", date, h, n, port, role)
+			filename := fmt.Sprintf("%s/log_%s_%02d%02d_%d_%s.qlog", logFileDirPath, date, h, n, port, role)
 			f, err := os.Create(filename)
 			if err != nil {
 				fmt.Println(err)

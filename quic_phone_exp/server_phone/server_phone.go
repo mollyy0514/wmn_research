@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,6 +28,7 @@ import (
 )
 
 const SERVER = "0.0.0.0"
+
 var BITRATE int
 var PACKET_LEN int
 var SLEEPTIME float64
@@ -34,7 +36,7 @@ var SLEEPTIME float64
 func main() {
 
 	fmt.Println("Starting server...")
-
+	/* ---------- USER SETTING --------- */
 	// Define command-line flags
 	_password := flag.String("p", "", "password")
 	_devices := flag.String("d", "sm00", "list of devices (space-separated)")
@@ -46,7 +48,7 @@ func main() {
 		fmt.Print("Please enter password for tcpdump.")
 		os.Exit(1)
 	}
-	
+
 	_devices_string := *_devices
 	devicesList := Get_devices(_devices_string)
 	portsList := Get_Port(devicesList)
@@ -54,7 +56,7 @@ func main() {
 	duration := *_duration
 	PACKET_LEN = *_length
 	bitrate_string := *_bitrate
-	
+
 	num, unit := bitrate_string[:len(bitrate_string)-1], bitrate_string[len(bitrate_string)-1:]
 	if unit == "k" {
 		numVal, _ := strconv.ParseFloat(num, 64)
@@ -72,6 +74,7 @@ func main() {
 	} else {
 		SLEEPTIME = 0
 	}
+	/* ---------- USER SETTING --------- */
 
 	/* ---------- TCPDUMP ---------- */
 	// for i := 0; i < len(portsList); i++ {
@@ -79,20 +82,39 @@ func main() {
 	// 	Start_server_tcpdump(*_password, portsList[i][1])
 	// }
 	/* ---------- TCPDUMP ---------- */
-	
+	currentTime := time.Now()
+	y := currentTime.Year()
+	m := currentTime.Month()
+	d := currentTime.Day()
+
+	// create directory in the name of current date
+	folderDate := fmt.Sprintf("%02d-%02d-%02d", y, m, d)
+	basePath := "/home/wmnlab/temp/QUIC_temp"
+	logFileDirPath := filepath.Join(basePath, folderDate)
+	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
+		err = os.MkdirAll(logFileDirPath, 0755) // 0755 is a common permission setting
+		if err != nil {
+			fmt.Println("Error creating directory:", err)
+			return
+		}
+		fmt.Println("Directory created:", logFileDirPath)
+	} else {
+		fmt.Println("Directory already exists:", logFileDirPath)
+	}
+
 	// Sync between goroutines.
 	var wg sync.WaitGroup
 	for i := 0; i < len(portsList); i++ {
 		wg.Add(2)
 		defer wg.Done()
 
-		go EchoQuicServer(SERVER, portsList[i][0], true, duration)
-		go EchoQuicServer(SERVER, portsList[i][1], false, duration)
+		go EchoQuicServer(SERVER, portsList[i][0], true, duration, logFileDirPath)
+		go EchoQuicServer(SERVER, portsList[i][1], false, duration, logFileDirPath)
 	}
 	wg.Wait()
 }
 
-func HandleQuicStream_ul(stream quic.Stream, quicPort int, duration int) {
+func HandleQuicStream_ul(stream quic.Stream, quicPort int, duration int, logFileDirPath string) {
 	// Open or create a file to store the floats in JSON format
 	currentTime := time.Now()
 	y := currentTime.Year()
@@ -101,7 +123,13 @@ func HandleQuicStream_ul(stream quic.Stream, quicPort int, duration int) {
 	h := currentTime.Hour()
 	n := currentTime.Minute()
 	date := fmt.Sprintf("%02d%02d%02d", y, m, d)
-	filepath := fmt.Sprintf("/home/wmnlab/temp/QUIC_temp/time_file/time_%s_%02d%02d_%d.txt", date, h, n, quicPort)
+	
+	timeDirPath := filepath.Join(logFileDirPath, "time_file")
+	err := os.MkdirAll(timeDirPath, os.ModePerm)
+	if err != nil {
+		log.Fatal("Error creating directory:", err)
+	}
+	filepath := fmt.Sprintf("%s/time_%s_%02d%02d_%d.txt", timeDirPath, date, h, n, quicPort)
 	timeFile, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
@@ -120,7 +148,7 @@ func HandleQuicStream_ul(stream quic.Stream, quicPort int, duration int) {
 			return
 		}
 		// fmt.Printf("Received %d: %f\n", quicPort, ts)
-		if time.Since(currentTime) > time.Second * time.Duration(time_slot) {
+		if time.Since(currentTime) > time.Second*time.Duration(time_slot) {
 			fmt.Printf("%d [%d-%d] receive %d\n", quicPort, time_slot-1, time_slot, seq-prev_receive)
 			time_slot += 1
 			prev_receive = seq
@@ -143,7 +171,7 @@ func HandleQuicStream_dl(stream quic.Stream, quicPort int, duration int) {
 	euler := 271828
 	pi := 31415926
 	next_transmission_time := float64(start_time.UnixNano()) / 1e6
-	for time.Since(start_time) <= time.Second * time.Duration(duration) {
+	for time.Since(start_time) <= time.Second*time.Duration(duration) {
 		for float64(time.Now().UnixNano())/1e6 < next_transmission_time {
 			// t = time.Now().UnixNano()
 		}
@@ -156,11 +184,11 @@ func HandleQuicStream_dl(stream quic.Stream, quicPort int, duration int) {
 		// var message []byte
 		message := Server_create_packet(uint32(euler), uint32(pi), datetimedec, microsec, uint32(seq))
 		Server_transmit(stream, message)
-		
-		if time.Since(start_time) > time.Second * time.Duration(time_slot) {
+
+		if time.Since(start_time) > time.Second*time.Duration(time_slot) {
 			fmt.Printf("%d [%d-%d] transmit %d\n", quicPort, time_slot-1, time_slot, seq-prev_transmit)
-            time_slot += 1
-            prev_transmit = seq
+			time_slot += 1
+			prev_transmit = seq
 		}
 		seq++
 	}
@@ -168,7 +196,7 @@ func HandleQuicStream_dl(stream quic.Stream, quicPort int, duration int) {
 	Server_transmit(stream, message)
 }
 
-func HandleQuicSession(sess quic.Connection, quicPort int, ul bool, duration int) {
+func HandleQuicSession(sess quic.Connection, quicPort int, ul bool, duration int, logFileDirPath string) {
 	for {
 		// create a stream to receive message, and also create a channel for communication
 		stream, err := sess.AcceptStream(context.Background())
@@ -178,7 +206,7 @@ func HandleQuicSession(sess quic.Connection, quicPort int, ul bool, duration int
 		}
 
 		if ul {
-			go HandleQuicStream_ul(stream, quicPort, duration)
+			go HandleQuicStream_ul(stream, quicPort, duration, logFileDirPath)
 		} else {
 			go HandleQuicStream_dl(stream, quicPort, duration)
 		}
@@ -186,7 +214,7 @@ func HandleQuicSession(sess quic.Connection, quicPort int, ul bool, duration int
 }
 
 // Start a server that echos all data on top of QUIC
-func EchoQuicServer(host string, quicPort int, ul bool, duration int) error {
+func EchoQuicServer(host string, quicPort int, ul bool, duration int, logFileDirPath string) error {
 	quicConfig := quic.Config{
 		KeepAlivePeriod: time.Minute * 5,
 		EnableDatagrams: true,
@@ -203,7 +231,13 @@ func EchoQuicServer(host string, quicPort int, ul bool, duration int) error {
 			h := currentTime.Hour()
 			n := currentTime.Minute()
 			date := fmt.Sprintf("%02d%02d%02d", y, m, d)
-			filename := fmt.Sprintf("/home/wmnlab/temp/QUIC_temp/server_qlog/log_%s_%02d%02d_%d_%s.qlog", date, h, n, quicPort, role)
+
+			qlogDirPath := filepath.Join(logFileDirPath, "server_qlog")
+			err := os.MkdirAll(logFileDirPath, os.ModePerm)
+			if err != nil {
+				log.Fatal("Error creating directory:", err)
+			}
+			filename := fmt.Sprintf("%s/log_%s_%02d%02d_%d_%s.qlog", qlogDirPath, date, h, n, quicPort, role)
 			f, err := os.Create(filename)
 			if err != nil {
 				fmt.Println("cannot generate qlog file")
@@ -212,7 +246,7 @@ func EchoQuicServer(host string, quicPort int, ul bool, duration int) error {
 			return qlog.NewConnectionTracer(f, p, connID)
 		},
 	}
-	listener, err := quic.ListenAddr(fmt.Sprintf("%s:%d", host, quicPort), generateTLSConfig(quicPort), &quicConfig)
+	listener, err := quic.ListenAddr(fmt.Sprintf("%s:%d", host, quicPort), generateTLSConfig(quicPort, logFileDirPath), &quicConfig)
 	if err != nil {
 		return err
 	}
@@ -228,12 +262,12 @@ func EchoQuicServer(host string, quicPort int, ul bool, duration int) error {
 			return err
 		}
 
-		go HandleQuicSession(sess, quicPort, ul, duration)
+		go HandleQuicSession(sess, quicPort, ul, duration, logFileDirPath)
 	}
 }
 
 // Setup a bare-bones TLS config for the server
-func generateTLSConfig(quicPort int) *tls.Config {
+func generateTLSConfig(quicPort int, logFileDirPath string) *tls.Config {
 	key, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		panic(err)
@@ -253,7 +287,13 @@ func generateTLSConfig(quicPort int) *tls.Config {
 	h := currentTime.Hour()
 	n := currentTime.Minute()
 	date := fmt.Sprintf("%02d%02d%02d", y, m, d)
-	keyFileName := fmt.Sprintf("/home/wmnlab/temp/QUIC_temp/tls_key/tls_key_%s_%02d%02d_%02d.log", date, h, n, quicPort)
+
+	keyDirPath := filepath.Join(logFileDirPath, "tls_key")
+	err = os.MkdirAll(keyDirPath, os.ModePerm)
+	if err != nil {
+		log.Fatal("Error creating directory:", err)
+	}
+	keyFileName := fmt.Sprintf("%s/tls_key_%s_%02d%02d_%02d.log", keyDirPath, date, h, n, quicPort)
 	kl, _ := os.OpenFile(keyFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 
 	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
@@ -267,7 +307,7 @@ func generateTLSConfig(quicPort int) *tls.Config {
 	}
 }
 
-func Start_server_tcpdump(password string, port int) {
+func Start_server_tcpdump(password string, port int, logFileDirPath string) {
 	currentTime := time.Now()
 	y := currentTime.Year()
 	m := currentTime.Month()
@@ -275,10 +315,16 @@ func Start_server_tcpdump(password string, port int) {
 	h := currentTime.Hour()
 	n := currentTime.Minute()
 	date := fmt.Sprintf("%02d%02d%02d", y, m, d)
-	filepath := fmt.Sprintf("/home/wmnlab/temp/QUIC_temp/server_pcap/capturequic_s_%s_%02d%02d_%d.pcap", date, h, n, port)
+	
+	pcapDirPath := filepath.Join(logFileDirPath, "server_pcap")
+	err := os.MkdirAll(pcapDirPath, os.ModePerm)
+	if err != nil {
+		log.Fatal("Error creating directory:", err)
+	}
+	filepath := fmt.Sprintf("%s/capturequic_s_%s_%02d%02d_%d.pcap", pcapDirPath, date, h, n, port)
 	command := fmt.Sprintf("echo %s | sudo -S tcpdump port %d -w %s", password, port, filepath)
 	cmd := exec.Command("sh", "-c", command)
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
