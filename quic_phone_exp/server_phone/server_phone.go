@@ -215,6 +215,11 @@ func HandleQuicSession(sess quic.Connection, quicPort int, ul bool, duration int
 
 // Start a server that echos all data on top of QUIC
 func EchoQuicServer(host string, quicPort int, ul bool, duration int, logFileDirPath string) error {
+	qlogDirPath := filepath.Join(logFileDirPath, "server_qlog")
+	err := os.MkdirAll(logFileDirPath, os.ModePerm)
+	if err != nil {
+		log.Fatal("Error creating directory:", err)
+	}
 	quicConfig := quic.Config{
 		KeepAlivePeriod: time.Minute * 5,
 		EnableDatagrams: true,
@@ -232,11 +237,6 @@ func EchoQuicServer(host string, quicPort int, ul bool, duration int, logFileDir
 			n := currentTime.Minute()
 			date := fmt.Sprintf("%02d%02d%02d", y, m, d)
 
-			qlogDirPath := filepath.Join(logFileDirPath, "server_qlog")
-			err := os.MkdirAll(logFileDirPath, os.ModePerm)
-			if err != nil {
-				log.Fatal("Error creating directory:", err)
-			}
 			filename := fmt.Sprintf("%s/log_%s_%02d%02d_%d_%s.qlog", qlogDirPath, date, h, n, quicPort, role)
 			f, err := os.Create(filename)
 			if err != nil {
