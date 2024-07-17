@@ -216,7 +216,7 @@ func HandleQuicSession(sess quic.Connection, quicPort int, ul bool, duration int
 // Start a server that echos all data on top of QUIC
 func EchoQuicServer(host string, quicPort int, ul bool, duration int, logFileDirPath string) error {
 	qlogDirPath := filepath.Join(logFileDirPath, "server_qlog")
-	err := os.MkdirAll(logFileDirPath, os.ModePerm)
+	err := os.MkdirAll(qlogDirPath, os.ModePerm)
 	if err != nil {
 		log.Fatal("Error creating directory:", err)
 	}
