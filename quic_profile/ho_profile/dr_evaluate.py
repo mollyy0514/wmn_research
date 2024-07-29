@@ -45,9 +45,9 @@ class DrEval:
         
         # self.sr_load_path = os.path.join(self.model_path, 'train', 'sr', self.dirc_mets, 'models', self.model_name)
         # self.dr_load_path = os.path.join(self.model_path, 'train', f'dr_anchor_{self.anchor_mode}', self.dirc_mets, 'models', self.model_name)
-        self.sr_load_path = os.path.join(self.model_path, self.model_name, self.dirc_mets, 'sr', 'train', 'models')
-        self.dr_load_path = os.path.join(self.model_path, self.model_name, self.dirc_mets, f'dr_anchor_{self.anchor_mode}', 'train', 'models')
-        self.save_path = os.path.join(self.model_path, self.model_name, self.dirc_mets, f'dr_anchor_{self.anchor_mode}', self.dataset_type)
+        self.sr_load_path = os.path.join(self.model_path, self.model_name, 'train', 'sr', self.dirc_mets, 'models')
+        self.dr_load_path = os.path.join(self.model_path, self.model_name, 'train', f'dr_anchor_{self.anchor_mode}', self.dirc_mets, 'models')
+        self.save_path = os.path.join(self.model_path, self.model_name, f'dr_anchor_{self.anchor_mode}', self.dirc_mets, self.dataset_type)
         
         print(self.save_path)
         print(self.sr_load_path)

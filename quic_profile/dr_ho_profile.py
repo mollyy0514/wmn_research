@@ -51,7 +51,7 @@ dataset_type = args.usage if args.usage is not None else 'train'
 save_answer = args.save
 test_mode = args.test_mode
 
-sr_model_name = '20240620_1537000709_new_data_sync_v2'
+sr_model_name = '20240719_1428000117_new_data_sync_v2'
 sr_model_id = sr_model_name[:19] if len(sr_model_name) > 19 else sr_model_name
 sr_model_dscp = sr_model_name[20:] if len(sr_model_name) > 19 else None
 
@@ -63,3 +63,6 @@ print(len(filepaths))
 #     dr_model = DrProfile(filepaths, route,
 #                 sr_model_id, sr_model_dscp,
 #                 dirc_mets=dirc_mets, anchor_mode="by_event", test_mode=test_mode)
+
+
+# python3 ./dr_ho_profile.py -dt train -sm BR -r BR -it 3 -d 2024-07-04 2024-07-17

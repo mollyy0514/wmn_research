@@ -76,3 +76,6 @@ for dirc_mets in dirc_mets_list:
                   iter_num=iter_num, test_mode=test_mode)
     eval.run_hist_method(N=iter_num)
     eval.plot()
+
+
+# python3 ./dr_ho_evaluate.py -r BR -dt train -p 20240719_13430002fb_new_data_sync_v2 -am by_event -it 1 -d 2024-07-17

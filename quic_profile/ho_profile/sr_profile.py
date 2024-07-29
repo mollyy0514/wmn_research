@@ -225,9 +225,9 @@ class SrProfile():
                 prior_tag = '_'.join([s for s in prior_row[self.sp_columns] if pd.notna(s)])
                 prior_right_bound = prior_row['start'] + pd.Timedelta(seconds=(scope[prior_tag][1]))
                 if pd.notna(prior_row['end']):
-                    left_bound = min(max(current_left_bound, Profile.interpolate(prior_right_bound, current_left_bound), prior_row['end']), start_ts)
+                    left_bound = min(max(current_left_bound, SrProfile.interpolate(prior_right_bound, current_left_bound), prior_row['end']), start_ts)
                 else:
-                    left_bound = min(max(current_left_bound, Profile.interpolate(prior_right_bound, current_left_bound), prior_row['start']), start_ts)
+                    left_bound = min(max(current_left_bound, SrProfile.interpolate(prior_right_bound, current_left_bound), prior_row['start']), start_ts)
             else:
                 left_bound = current_left_bound
             
@@ -235,9 +235,9 @@ class SrProfile():
                 post_tag = '_'.join([s for s in post_row[self.sp_columns] if pd.notna(s)])
                 post_left_bound = post_row['start'] + pd.Timedelta(seconds=(scope[post_tag][0]))
                 if pd.notna(end_ts):
-                    right_bound = max(min(current_right_bound, Profile.interpolate(current_right_bound, post_left_bound), post_row['start']), end_ts)
+                    right_bound = max(min(current_right_bound, SrProfile.interpolate(current_right_bound, post_left_bound), post_row['start']), end_ts)
                 else:
-                    right_bound = max(min(current_right_bound, Profile.interpolate(current_right_bound, post_left_bound), post_row['start']), start_ts)
+                    right_bound = max(min(current_right_bound, SrProfile.interpolate(current_right_bound, post_left_bound), post_row['start']), start_ts)
             else:
                 right_bound = current_right_bound
             
@@ -375,13 +375,13 @@ class SrProfile():
             data = []
             for lst in self.Container[tag]['relative_loex_timestamp']:
                 data += lst
-            self.Profile[tag]['relative_loex_timestamp'] = Profile.downsample(data)
+            self.Profile[tag]['relative_loex_timestamp'] = SrProfile.downsample(data)
             self.Container[tag]['relative_loex_timestamp'] = []
             
             data = []
             for lst in self.Container[tag]['relative_timestamp']:
                 data += lst
-            self.Profile[tag]['relative_timestamp'] = Profile.downsample(data)
+            self.Profile[tag]['relative_timestamp'] = SrProfile.downsample(data)
             self.Container[tag]['relative_timestamp'] = []
             
             del data
@@ -445,7 +445,7 @@ class SrProfile():
             y = np.asarray(table[RATE_TYPE], dtype=np.float64)
             
             # 計算直方圖的面積
-            hist_area = Profile.total_area_histogram_with_centers(x, y, w_size)
+            hist_area = SrProfile.total_area_histogram_with_centers(x, y, w_size)
             # print("Total area of histogram:", hist_area)
             
             kde1 = gaussian_kde(loex_data)
@@ -457,7 +457,7 @@ class SrProfile():
                 return kde1(x) / kde2_values
             
             # 計算 KDE 下的總面積（只計算正負3個標準差內的點，理論上 scalar 會稍微高估，但不會太多）
-            kde_area = Profile.total_area_kde(kde, left_bound, right_bound)
+            kde_area = SrProfile.total_area_kde(kde, left_bound, right_bound)
             # print("Total area under KDE:", kde_area)
             
             scalar = hist_area / kde_area

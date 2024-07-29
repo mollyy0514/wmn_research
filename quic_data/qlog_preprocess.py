@@ -12,8 +12,8 @@ from pytictoc import TicToc
 # database = "/Volumes/mollyT7/MOXA/"
 # database = "/home/wmnlab/Documents/r12921105"
 # database = "/Users/molly/Desktop/"
-database = "/media/wmnlab/f1263a55-44b5-4bd1-a331-547c81df1dca/quic_data/"
-dates = ["2024-07-04"]
+database = "/media/wmnlab/G/quic_data/"
+dates = ["2024-07-28"]
 exp_names = {
     "QUIC-inf": (3, ["#{:02d}".format(i + 1) for i in range(3)]),
     }
@@ -29,6 +29,7 @@ device_to_port = {"sm00": [5200, 5201],
                   "sm07": [5214, 5215],
                   "sm08": [5216, 5217],
                   "sm09": [5218, 5219],
+                  "MacBookProM1": [4200, 4201],
                   }
 num_devices = len(device_names)
 

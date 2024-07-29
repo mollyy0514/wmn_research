@@ -40,11 +40,11 @@ class SrEval:
         self.save_answer = save_answer
         
         self.save_path = save_path
-        self.load_path = os.path.join(load_path, self.model_name, 'train', 'sr', self.dirc_mets, 'models', self.model_prefix)
+        self.load_path = os.path.join(load_path, self.model_name, self.model_prefix, 'train', 'sr', self.dirc_mets, 'models', self.model_prefix)
         print(self.load_path)
         
         if path2results is None:
-            with open(os.path.join(os.getcwd(), "quic_profile", "result_save_path.txt"), "r") as f:
+            with open(os.path.join(os.getcwd(), "result_save_path.txt"), "r") as f:
                 self.path2results = f.readline()
         else:
             self.path2results = path2results
@@ -128,9 +128,9 @@ class SrEval:
                 prior_tag = '_'.join([s for s in prior_row[self.sp_columns] if pd.notna(s)])
                 prior_right_bound = prior_row['start'] + pd.Timedelta(seconds=(scope[prior_tag][1]))
                 if pd.notna(prior_row['end']):
-                    left_bound = min(max(current_left_bound, Eval.interpolate(prior_right_bound, current_left_bound), prior_row['end']), start_ts)
+                    left_bound = min(max(current_left_bound, SrEval.interpolate(prior_right_bound, current_left_bound), prior_row['end']), start_ts)
                 else:
-                    left_bound = min(max(current_left_bound, Eval.interpolate(prior_right_bound, current_left_bound), prior_row['start']), start_ts)
+                    left_bound = min(max(current_left_bound, SrEval.interpolate(prior_right_bound, current_left_bound), prior_row['start']), start_ts)
             else:
                 left_bound = current_left_bound
             
@@ -138,9 +138,9 @@ class SrEval:
                 post_tag = '_'.join([s for s in post_row[self.sp_columns] if pd.notna(s)])
                 post_left_bound = post_row['start'] + pd.Timedelta(seconds=(scope[post_tag][0]))
                 if pd.notna(end_ts):
-                    right_bound = max(min(current_right_bound, Eval.interpolate(current_right_bound, post_left_bound), post_row['start']), end_ts)
+                    right_bound = max(min(current_right_bound, SrEval.interpolate(current_right_bound, post_left_bound), post_row['start']), end_ts)
                 else:
-                    right_bound = max(min(current_right_bound, Eval.interpolate(current_right_bound, post_left_bound), post_row['start']), start_ts)
+                    right_bound = max(min(current_right_bound, SrEval.interpolate(current_right_bound, post_left_bound), post_row['start']), start_ts)
             else:
                 right_bound = current_right_bound
             
@@ -164,7 +164,7 @@ class SrEval:
                 tmp = pd.merge(current_df, plr_mapping, on='window_id', how='left')
                 tmp[RATE_TYPE] = tmp[RATE_TYPE].fillna(0)
                 
-                if not Eval.generate_random_boolean(trigger_probability):
+                if not SrEval.generate_random_boolean(trigger_probability):
                     tmp[RATE_TYPE] = 0
             
             tmp['type'] = tag
@@ -194,7 +194,7 @@ class SrEval:
         trigger_prob_mapping = stable_df[~stable_df['Timestamp_sec'].duplicated()].reset_index(drop=True)[['Timestamp_sec']]
         
         trigger_probability = prob_model['Stable']
-        random_bool_array = [Eval.generate_random_boolean(trigger_probability) for _ in range(len(trigger_prob_mapping))]
+        random_bool_array = [SrEval.generate_random_boolean(trigger_probability) for _ in range(len(trigger_prob_mapping))]
         trigger_prob_mapping['trigger'] = random_bool_array
 
         stable_df = pd.merge(stable_df, trigger_prob_mapping, on='Timestamp_sec', how='left')
@@ -222,7 +222,7 @@ class SrEval:
         
         answer = answer.sort_values(by='Timestamp').reset_index(drop=True)
         answer[RATE_TYPE] = answer[RATE_TYPE] / 100
-        answer['Y'] = answer[RATE_TYPE].apply(Eval.generate_random_boolean)
+        answer['Y'] = answer[RATE_TYPE].apply(SrEval.generate_random_boolean)
         
         eval_value = answer['Y'].mean() * 100
         ground_value = df[mets].mean() * 100
@@ -331,7 +331,7 @@ class SrEval:
             
             # Save Results
             # save_path = os.path.join(self.save_path, self.model_name, 'sr', self.dirc_mets, 'results')
-            save_path = os.path.join(self.save_path, self.model_name, self.dataset_type, 'sr', self.dirc_mets, 'results')
+            save_path = os.path.join(self.save_path, self.model_name, self.model_prefix, self.dataset_type, 'sr', self.dirc_mets, 'results')
             if not os.path.isdir(save_path):
                 os.makedirs(save_path)
                 
@@ -414,7 +414,7 @@ class SrEval:
         
         # Save figure
         # save_path = os.path.join(self.save_path, self.model_name, 'sr', self.dirc_mets, 'figures')
-        save_path = os.path.join(self.save_path, self.model_name, self.dataset_type, 'sr', self.dirc_mets, 'figures')
+        save_path = os.path.join(self.save_path, self.model_name, self.model_prefix, self.dataset_type, 'sr', self.dirc_mets, 'figures')
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
         save_path = os.path.join(save_path, f'{self.save_name}_iter{self.iter_num}.png')

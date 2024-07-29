@@ -42,7 +42,7 @@ class DrProfile():
         
         self.save_path = save_path
         print(self.save_path, self.sr_model_name, self.dr_model_name, self.model_prefix, self.dirc_mets)
-        self.load_path = os.path.join(load_path, self.sr_model_name, 'train', 'sr', self.dirc_mets, 'models', self.model_prefix)
+        self.load_path = os.path.join(load_path, self.sr_model_name, self.model_prefix, 'train', 'sr', self.dirc_mets, 'models', self.model_prefix)
         print(self.load_path)
         
         try:
@@ -462,7 +462,7 @@ class DrProfile():
         self.dr_prob_models_adjust = model_adjust
 
     def save_models(self):
-        save_path = os.path.join(self.save_path, self.sr_model_name, 'train', self.dr_model_name, self.dirc_mets, 'models')
+        save_path = os.path.join(self.save_path, self.sr_model_name, self.model_prefix, 'train', self.dr_model_name, self.dirc_mets, 'models')
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
             
@@ -546,7 +546,7 @@ class DrProfile():
             else:
                 return rho
         
-        load_path = os.path.join('.', sr_model_name, 'train', dr_model_name, dirc_mets, 'models')
+        load_path = os.path.join('.', sr_model_name, self.model_prefix, 'train', dr_model_name, dirc_mets, 'models')
         
         try:
             with open(os.path.join(load_path, f'{route}_dr_prob_models_mle.pkl'), 'rb') as f:

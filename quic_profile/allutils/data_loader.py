@@ -36,19 +36,19 @@ def data_loader (
             with open(json_filepath, 'r', encoding='utf-8') as json_file:
                 my_dict = json.load(json_file)
 
-    for i, (exp, item) in enumerate(my_dict.items()):
-        if len(selected_exps) != 0 and exp not in selected_exps:
-            continue
-        if len(excluded_exps) != 0 and exp in excluded_exps:
-            continue
-        if len(selected_routes) != 0 and item['route'] not in selected_routes:
-            continue
-        if len(excluded_routes) != 0 and item['route'] in excluded_routes:
-            continue
-        try:
-            exps_dict[date] = {**exps_dict[date], **{exp: item}}
-        except:
-            exps_dict[date] = {exp: item}
+        for i, (exp, item) in enumerate(my_dict.items()):
+            if len(selected_exps) != 0 and exp not in selected_exps:
+                continue
+            if len(excluded_exps) != 0 and exp in excluded_exps:
+                continue
+            if len(selected_routes) != 0 and item['route'] not in selected_routes:
+                continue
+            if len(excluded_routes) != 0 and item['route'] in excluded_routes:
+                continue
+            try:
+                exps_dict[date] = {**exps_dict[date], **{exp: item}}
+            except:
+                exps_dict[date] = {exp: item}
     
     if show_info:
         for date, exps in exps_dict.items():
