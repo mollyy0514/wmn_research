@@ -735,7 +735,7 @@ for date in dates:
                     offset = None
                     # Iterate through frames to find 'offset' for 'frame_type': 'stream'
                     for frame in data_dict.get('frames', []):
-                        if frame.get('f_t') == 'sm':
+                        if frame.get('fr_t') == 'sm':
                             offset = frame.get('ofst')
                             length = frame.get('l')
                             break  # Stop iterating once 'offset' is found
@@ -780,7 +780,7 @@ for i in range(len(all_ul_rcv_files)):
     ul_sender_df = pd.read_csv(all_ul_sender_files[i], sep=',')
     # ul_sent_df is raw file, ul_rcv_df is processed file
     ul_sent_df = ul_sender_df[(ul_sender_df['name'] == 'transport:p_sent')]
-    ul_data_df = ul_sent_df[ul_sent_df['data'].str.contains("'f_t': 'sm'")]
+    ul_data_df = ul_sent_df[ul_sent_df['data'].str.contains("'fr_t': 'sm'")]
     ul_rcv_df = pd.read_csv(all_ul_rcv_files[i], sep='@')
     ul_loss_df = pd.read_csv(all_ul_pkl_files[i])
     ul_exec_lat_df, ul_exec_reorder_df, ul_exec_time_df, ul_real_lost_df, ul_lost_reorder_df, ul_lost_time_df = get_loss_data(ul_loss_df, ul_rcv_df)
