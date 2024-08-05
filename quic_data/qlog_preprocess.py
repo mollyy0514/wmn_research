@@ -12,7 +12,7 @@ from pytictoc import TicToc
 # database = "/Volumes/mollyT7/MOXA/"
 # database = "/home/wmnlab/Documents/r12921105"
 # database = "/Users/molly/Desktop/"
-database = "/media/wmnlab/G/quic_data/"
+database = "/home/wmnlab/G/quic_data"
 dates = ["2024-07-28"]
 exp_names = {
     "QUIC-inf": (3, ["#{:02d}".format(i + 1) for i in range(3)]),
