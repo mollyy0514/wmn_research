@@ -142,7 +142,10 @@ def ProcessTime(df, reference_time, is_client):
     # match the client timestamps to the closet estimated time delta
     if is_client:
         for t in timestamps:
-            GetTimeDelta(t)
+            mean_time_diff = GetTimeDelta(t)
+            t = datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f')
+            t += pd.Timedelta(seconds=mean_time_diff)
+            t = t.strftime('%Y-%m-%d %H:%M:%S.%f')
 
     df['epoch_time'] = epoch_times_unix
     df['timestamp'] = timestamps
