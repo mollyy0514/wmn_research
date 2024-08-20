@@ -31,15 +31,6 @@ device_to_port = {
     "sm09": [5218, 5219],
 }
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-t", "--time", type=int,
-                    help="time in seconds to transmit for (default 1 hour = 3600 secs)", default=300)
-parser.add_argument("-b", "--bitrate", type=str,
-                    help="target bitrate in bits/sec (0 for unlimited)", default="1M")
-parser.add_argument("-l", "--length", type=int,
-                    help="length of buffer to read or write in bytes (packet size)", default=250)
-args = parser.parse_args()
-
 devices_info = []
 for i, info in enumerate(adb.list()):
     try:
