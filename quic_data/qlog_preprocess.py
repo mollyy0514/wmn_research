@@ -755,6 +755,8 @@ for date in dates:
                 ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
                 lost_rows.rename(columns={'timestamp': 'lost_timestamp'}, inplace=True)
                 lost_rows['Timestamp'] = None
+                lost_rows['packet_number'] = lost_rows['packet_number'].astype(int)
+                processed_sent_df['packet_number'] = processed_sent_df['packet_number'].astype(int)
                 merged_df = pd.merge_asof(lost_rows.sort_values('packet_number'), processed_sent_df[['Timestamp', 'packet_number']], on='packet_number')
                 lost_rows['Timestamp'] = merged_df['Timestamp_y']
                 lost_rows.to_csv(lost_pk_csv_file_path, index=False)
