@@ -1,3 +1,7 @@
+"""
+TODO:
+    1. Add server script to execute different exp on different client devices.
+"""
 # run if the mobile phone has been turned off
 # or if we want to git pull the latest version
 from adbutils import adb

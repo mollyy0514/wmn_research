@@ -691,7 +691,6 @@ for date in dates:
                 # Export packet lost file
                 lost_pk_csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/middle/lost_pk_{time}_{port}.csv"
                 
-
                 # Set to True if the packet is lost
                 pk_sent_rows['packet_lost'] = False
 
@@ -703,25 +702,6 @@ for date in dates:
                     if packet_number in pk_sent_rows['packet_number'].values:
                         pk_sent_rows.loc[pk_sent_rows['packet_number'] == packet_number, 'packet_lost'] = True
                 ##### ---------- IDENTIFY LOST PACKETS ---------- #####
-                        
-                ##### ---------- PROCESSED SENT FILE ---------- #####
-                cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost']
-                processed_sent_df = pk_sent_rows[cols]
-                processed_sent_df.rename(columns={'timestamp': 'Timestamp'}, inplace=True)
-                if port % 2 == 0:
-                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/ul_processed_sent_{time}.csv"
-                else:
-                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/dl_processed_sent_{time}.csv"
-                processed_sent_df.to_csv(csv_file_path, sep='@', index=False)
-                ##### ---------- PROCESSED SENT FILE ---------- #####
-
-                ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
-                lost_rows.rename(columns={'timestamp': 'lost_timestamp'}, inplace=True)
-                lost_rows['Timestamp'] = None
-                merged_df = pd.merge_asof(lost_rows.sort_values('packet_number'), processed_sent_df[['Timestamp', 'packet_number']], on='packet_number')
-                lost_rows['Timestamp'] = merged_df['Timestamp_y']
-                lost_rows.to_csv(lost_pk_csv_file_path, index=False)
-                ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
 
                 ##### ---------- RECEIVER SIDE DATA ---------- #####
                 pk_rcv_df = pk_rcv_rows.reset_index(drop=True)
@@ -751,6 +731,34 @@ for date in dates:
                 pk_rcv_df['offset'] = offset_rcv_list
                 pk_rcv_df['length'] = length_rcv_list
                 ##### ---------- RECEIVER SIDE DATA ---------- #####
+
+                ##### ---------- CALCULATING PACKET LATENCY ---------- #####
+                # Merge the two dataframes on 'packet_number' with how='left' to keep all rows from pk_sent_rows
+                merged_df = pd.merge(pk_sent_rows[['packet_number', 'epoch_time']], 
+                                     pk_rcv_df[['packet_number', 'epoch_time']], 
+                                     on='packet_number', how='left', suffixes=('_sent', '_rcv'))
+                # Calculate latency: difference between 'timestamp_rcv' and 'timestamp_sent'
+                pk_sent_rows['latency'] = merged_df['timestamp_rcv'] - merged_df['timestamp_sent']
+                ##### ---------- CALCULATING PACKET LATENCY ---------- #####
+
+                ##### ---------- PROCESSED SENT FILE ---------- #####
+                cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'latency', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost']
+                processed_sent_df = pk_sent_rows[cols]
+                processed_sent_df.rename(columns={'timestamp': 'Timestamp'}, inplace=True)
+                if port % 2 == 0:
+                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/ul_processed_sent_{time}.csv"
+                else:
+                    csv_file_path = f"{database}/{date}/{exp}/{device}/#{pair[5]}/data/dl_processed_sent_{time}.csv"
+                processed_sent_df.to_csv(csv_file_path, sep='@', index=False)
+                ##### ---------- PROCESSED SENT FILE ---------- #####
+
+                ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
+                lost_rows.rename(columns={'timestamp': 'lost_timestamp'}, inplace=True)
+                lost_rows['Timestamp'] = None
+                merged_df = pd.merge_asof(lost_rows.sort_values('packet_number'), processed_sent_df[['Timestamp', 'packet_number']], on='packet_number')
+                lost_rows['Timestamp'] = merged_df['Timestamp_y']
+                lost_rows.to_csv(lost_pk_csv_file_path, index=False)
+                ##### ---------- RE-MAPPING LOST PACKETS TIME TO PACKET SENT TIME ---------- #####
 
                 ##### ---------- PROCESSED RECEIVED FILE ---------- #####
                 cols = ['time', 'epoch_time', 'timestamp', 'name', 'packet_number', 'offset', 'length']
