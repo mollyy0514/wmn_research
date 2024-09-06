@@ -120,22 +120,27 @@ class SrProfile():
     def dist_aggregate(self, tables):
         mets, RATE_TYPE = self.mets, self.RATE_TYPE
         
-        table = pd.DataFrame(columns=['window_id', 'tx_count', mets])
+        table = pd.DataFrame(columns=['window_id', 'tx_count', mets, 'latency','avg_cwnd_change'])
         table[mets] = table[mets].astype('Int32')
         table['window_id'] = table['window_id'].astype('float32')
         table['tx_count'] = table['tx_count'].astype('Int32')
+        table['avg_cwnd_change'] = table['avg_cwnd_change'].astype('float32')
+        table['latency'] = table['latency'].astype('float32')
         
         tables = [t for t in tables if t is not None]
         for this_table in tables:
             table = table.merge(this_table, on=['window_id'], how='outer').fillna(0)
             table['tx_count'] = table['tx_count_x'] + table['tx_count_y']
             table[mets] = table[f'{mets}_x'] + table[f'{mets}_y']
-            table = table[['window_id','tx_count',mets]]
+            table['avg_cwnd_change'] = table[['avg_cwnd_change_x', 'avg_cwnd_change_y']].mean(axis=1, skipna=True)
+            table['latency'] = table[['latency_x', 'latency_y']].mean(axis=1, skipna=True)
+            
+            table = table[['window_id', 'tx_count', mets, 'latency', 'avg_cwnd_change']]
         
         table[RATE_TYPE] = table[mets] / (table['tx_count'] + 1e-9) * 100
         table[RATE_TYPE] = table[RATE_TYPE].astype('float32')
         
-        table = table[['window_id', 'tx_count', mets, RATE_TYPE]].sort_values(by=['window_id']).reset_index(drop=True)
+        table = table[['window_id', 'tx_count', mets, 'latency', 'avg_cwnd_change', RATE_TYPE]].sort_values(by=['window_id']).reset_index(drop=True)
         return table
     
     @staticmethod
@@ -148,14 +153,13 @@ class SrProfile():
         total_area = bin_width * sum(heights)
         return total_area
     
-    @staticmethod
-    def total_area_kde(kde, lower_bound=-np.inf, upper_bound=np.inf):
-        # 定義積分函數
-        def integrand(x):
-            return kde(x)
-        total_area, _ = quad(integrand, lower_bound, upper_bound)
-        return total_area
-
+    # @staticmethod
+    # def total_area_kde(kde, lower_bound=-np.inf, upper_bound=np.inf):
+    #     # 定義積分函數
+    #     def integrand(x):
+    #         return kde(x)
+    #     total_area, _ = quad(integrand, lower_bound, upper_bound)
+    #     return total_area
 
     def create_instance(self, df, center, interval):
         mets, w_size = self.mets, self.w_size
@@ -164,11 +168,21 @@ class SrProfile():
         # Relative window converted from timestamp
         df['relative_time'] = (df['Timestamp'] - center).dt.total_seconds() # relative window time
         df['window_id'] = ((df['relative_time'] + w_size / 2) // w_size) * w_size  # 四捨五入
+        # Calculate the change in congestion window
+        df['filled_cwnd'] = df['congestion_window'].fillna(method='ffill')
+        first_valid_index = df['filled_cwnd'].first_valid_index()
+        if first_valid_index is not None:
+            first_filled_cwnd = df.loc[first_valid_index, 'filled_cwnd']
+            df['avg_cwnd_change'] = round((df['filled_cwnd'] - first_filled_cwnd) * 100 / first_filled_cwnd, 4)
+        else:
+            df['avg_cwnd_change'] = None        # Restore NaN values in the 'avg_cwnd_change' where the original 'congestion_window' was NaN
+        df['avg_cwnd_change'] = df['avg_cwnd_change'].where(df['congestion_window'].notna())
+        df.drop(columns=['filled_cwnd'], inplace=True)
         
         if mets == 'lost':
             loex_df = df[df['lost']].copy()
             ts_group = df.groupby(['window_id'])
-            table = ts_group.agg({'lost': ['count', 'sum'], 'Timestamp': ['first']}).reset_index()
+            table = ts_group.agg({'lost': ['count', 'sum'], 'latency': ['mean'], 'Timestamp': ['first'], 'avg_cwnd_change': lambda x: x.mean(skipna=True)}).reset_index()
         elif mets == 'excl':
             # only calculate the packets with excl, but didn't used???
             df['excl_exact'] = ~df['lost'] & df['excl']
@@ -180,10 +194,10 @@ class SrProfile():
             ts_group = df.groupby(['window_id'])
             table = ts_group.agg({'latency': ['count', 'mean'], 'Timestamp': ['first']}).reset_index()
             
-        table.columns = ['window_id', 'tx_count', mets, 'Timestamp']
+        table.columns = ['window_id', 'tx_count', mets, 'latency', 'Timestamp', 'avg_cwnd_change']
         
         return table, loex_df['relative_time'].to_list(), df['relative_time'].to_list()
-    
+
     def setup_profile(self, df, ho_df):
         scope, mets = self.scope, self.mets
         
@@ -345,10 +359,10 @@ class SrProfile():
             # Generate dataframes for ul or dl sent files
             if dirc == 'dl':
                 # df = generate_dataframe(filepath[1], parse_dates=['Timestamp'], usecols=['seq', 'Timestamp', 'lost', 'excl', 'latency'])
-                df = generate_dataframe(filepath[1], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
+                df = generate_dataframe(filepath[1], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latency', 'latest_rtt', 'congestion_window'])
             else:
                 # df = generate_dataframe(filepath[2], parse_dates=['Timestamp'], usecols=['seq', 'Timestamp', 'lost', 'excl', 'latency'])
-                df = generate_dataframe(filepath[2], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latest_rtt'])
+                df = generate_dataframe(filepath[2], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latency', 'latest_rtt', 'congestion_window'])
             df, ho_df, empty_data = data_aligner(df, ho_df)
             
             if empty_data:
@@ -357,6 +371,7 @@ class SrProfile():
 
             # Append "Register" for each trace to setup "Container"
             Register = self.setup_profile(df, ho_df)
+            # print(Register)
             for tag in scope.keys():
                 table = self.dist_aggregate(Register[tag]['dist_table'])
                 self.Container[tag]['dist_table'].append(table)
@@ -448,23 +463,24 @@ class SrProfile():
             hist_area = SrProfile.total_area_histogram_with_centers(x, y, w_size)
             # print("Total area of histogram:", hist_area)
             
-            kde1 = gaussian_kde(loex_data)
-            kde2 = gaussian_kde(xmit_data)
-            def kde(x):
-                kde2_values = kde2(x)
-                # 檢查 kde2 是否為零，如果是則返回一個超大值，把 loss rate 壓成 0
-                kde2_values[kde2_values == 0] = 1e9
-                return kde1(x) / kde2_values
+            # kde1 = gaussian_kde(loex_data)
+            # kde2 = gaussian_kde(xmit_data)
+            # def kde(x):
+            #     kde2_values = kde2(x)
+            #     # 檢查 kde2 是否為零，如果是則返回一個超大值，把 loss rate 壓成 0
+            #     kde2_values[kde2_values == 0] = 1e9
+            #     return kde1(x) / kde2_values
             
-            # 計算 KDE 下的總面積（只計算正負3個標準差內的點，理論上 scalar 會稍微高估，但不會太多）
-            kde_area = SrProfile.total_area_kde(kde, left_bound, right_bound)
-            # print("Total area under KDE:", kde_area)
+            # # 計算 KDE 下的總面積（只計算正負3個標準差內的點，理論上 scalar 會稍微高估，但不會太多）
+            # kde_area = SrProfile.total_area_kde(kde, left_bound, right_bound)
+            # # print("Total area under KDE:", kde_area)
             
-            scalar = hist_area / kde_area
-            # print("Scalar:", scalar)
+            # scalar = hist_area / kde_area
+            # # print("Scalar:", scalar)
             
-            self.kde_models[tag] = (scalar, kde1, kde2)
+            # self.kde_models[tag] = (scalar, kde1, kde2)
     def plot(self):
+        # 把 ax_twin 註解掉就不會有 number of packets transmitted (tx_count) 的 y-label
         scope, dirc, mets = self.scope, self.dirc, self.mets
         sd_factor = self.sd_factor
         METS_TYPE, RATE_TYPE, DIRC_TYPE = self.METS_TYPE, self.RATE_TYPE, self.DIRC_TYPE
@@ -481,28 +497,69 @@ class SrProfile():
             if len(loex_data) == 0:
                 continue
             
-            fig, ax = plt.subplots(figsize=(6, 4))
+            fig, ax = plt.subplots(figsize=(10, 5))
             
             x = np.asarray(table['window_id'], dtype=np.float64)
             y1 = np.asarray(table['tx_count'], dtype=np.float64)
             y2 = np.asarray(table[RATE_TYPE], dtype=np.float64)
+            y3 = np.asarray(table['avg_cwnd_change'], dtype=np.float64)
+            y4 = np.asarray(table['latency'], dtype=np.float64)
             
             ax_twin = ax.twinx()
             ax_twin.bar(x, y1, label='tx_packet', color='tab:blue', width=0.01, alpha=0.15)
             ax.bar(x, y2, label='loss_rate', color='tab:blue', width=0.01, alpha=0.97)
+
+            # Plot avg_cwnd_change on the right y-axis
+            ax3 = ax.twinx()  # Create the y-axis on the right side
+            # ax3.spines['right'].set_position(('outward', 60))  # Move the axis to avoid overlap
+            ax3.plot(x, y3, label='avg_cwnd_change', color='tab:green', linestyle='-', linewidth=1)
+            ax3.set_ylabel('Avg CWND Change (%)', color='tab:green')
+            ax3.tick_params(axis='y', labelcolor='tab:green')
+            # Make the y-limits symmetrical for avg_cwnd_change
+            max_abs_value = max(np.abs(y3))
+            ax3.set_ylim(-max_abs_value, max_abs_value)  # Set y-limits to be symmetrical
+            # Mark the max and min avg_cwnd_change without displaying values
+            max_cwnd_idx = np.argmax(y3)
+            min_cwnd_idx = np.argmin(y3)
+            # Mark max & min cwnd_change with a green dot
+            # 'go': Marks the points with green dots ('g' for green, 'o' for circle marker).
+            ax3.plot(x[max_cwnd_idx], y3[max_cwnd_idx], 'ko', label='Max CWND', markersize=3)
+            ax3.plot(x[min_cwnd_idx], y3[min_cwnd_idx], 'ko', label='Min CWND', markersize=3)
+            # Add 'Max' label
+            ax3.annotate('MAX', xy=(x[max_cwnd_idx], y3[max_cwnd_idx]), 
+                        xytext=(x[max_cwnd_idx] + 0.05, y3[max_cwnd_idx] + 0.1),
+                        fontsize=9, fontweight='bold', color='black')
+            # Add 'Min' label
+            ax3.annotate('MIN', xy=(x[min_cwnd_idx], y3[min_cwnd_idx]), 
+                        xytext=(x[min_cwnd_idx] + 0.05, y3[min_cwnd_idx] - 0.1),
+                        fontsize=9, fontweight='bold', color='black')
             
-            if kde1 is not None and kde2 is not None:
-                x = np.linspace(min(xmit_data), max(xmit_data), 1000)
+            # Plot latency on another right y-axis
+            ax4 = ax.twinx()  # Create another y-axis on the right side
+            ax4.spines['right'].set_position(('outward', 60))  # Further move the axis to avoid overlap
+            ax4.plot(x, y4, label='latency', color='tab:red', linestyle='--', linewidth=0.6)
+            ax4.set_ylabel('Latency (ms)', color='tab:red')
+            ax4.tick_params(axis='y', labelcolor='tab:red')
+            # Label the largest latency value on the plot
+            max_latency_idx = np.argmax(y4)  # Find index of the largest latency
+            max_latency_value = y4[max_latency_idx]
+            max_latency_x = x[max_latency_idx]
+            ax4.annotate(f'{max_latency_value:.2f} ms', xy=(max_latency_x, max_latency_value), 
+                        xytext=(max_latency_x + 0.1, max_latency_value + 0.1),
+                        arrowprops=dict(facecolor='black', shrink=0.05, width=0.5, headwidth=5, headlength=5),
+                        fontsize=10, fontweight='bold', color='red')
+            # if kde1 is not None and kde2 is not None:
+            #     x = np.linspace(min(xmit_data), max(xmit_data), 1000)
                 
-                def kde(x):
-                    kde2_values = kde2(x)
-                    # 檢查 kde2 是否為零，如果是則返回一個超大值，把 loss/excl rate 壓成 0
-                    kde2_values[kde2_values == 0] = 1e9
-                    return kde1(x) / kde2_values
+            #     def kde(x):
+            #         kde2_values = kde2(x)
+            #         # 檢查 kde2 是否為零，如果是則返回一個超大值，把 loss/excl rate 壓成 0
+            #         kde2_values[kde2_values == 0] = 1e9
+            #         return kde1(x) / kde2_values
             
-                density = scalar * kde(x)
-                ax.fill_between(x, density, label='KDE', color='tab:orange', alpha=0.45, linewidth=0)
-    
+            #     density = scalar * kde(x)
+            #     ax.fill_between(x, density, label='KDE', color='tab:orange', alpha=0.45, linewidth=0)
+
             # find the scope and boundaries
             ax.axvline(x=0, color='red', linestyle='-', alpha=0.5)
             ax.axvline(x=left_bound, color='blue', linestyle='--', label=f'-{sd_factor} Std')
@@ -519,7 +576,13 @@ class SrProfile():
             trigger_rate = round(self.prob_models[tag] * 100, 1)
             LossR = round(sum(table[mets]) / (sum(table['tx_count']) + 1e-9) * 100, 2)
             LossR_ = round(LossR * trigger_rate / 100, 2)
-            ax.text(left+0.06*(right-left), bottom+0.73*(top-bottom), f'Event Count: {count}\nTrigger Loss: {trigger} ({trigger_rate}%)\nAvg {RATE_TYPE}: {LossR}% ({LossR_}%)\nAvg INTR: {intr} (sec)', ha='left', fontweight='bold', fontsize=10)
+            max_cwnd = np.asarray(table['avg_cwnd_change']).max()
+            min_cwnd = np.asarray(table['avg_cwnd_change']).min()
+            cwnd_diff = round(max_cwnd-min_cwnd, 2)
+            avg_latency = round(np.asarray(table['latency']).mean(), 2)
+            ax.text(left+0.06*(right-left), bottom+0.73*(top-bottom), 
+                    f'Event Count: {count}\nTrigger Loss: {trigger} ({trigger_rate}%)\nAvg {RATE_TYPE}: {LossR}% ({LossR_}%)\nAvg INTR: {intr} (sec)\nMax CWND Diff: {cwnd_diff}%\nAvg Latency: {avg_latency}ms',
+                    ha='left', fontweight='bold', fontsize=10)
             
             if self.epoch == 'last':
                 ax.set_title(f'{DIRC_TYPE} {RATE_TYPE}: {tag} | {self.model_prefix}')
@@ -529,13 +592,16 @@ class SrProfile():
             ax.set_ylabel(METS_TYPE)
             ax.set_xlabel('Relative Timestamp (sec)')
             
-            ax_twin.set_ylabel('Number of Packets Transmit')
+            # ax_twin.set_ylabel('Number of Packets Transmit')
+            ax_twin.set_yticks([])  # Remove y-axis ticks
             
             # 合併兩個圖的legend
             lines, labels = ax.get_legend_handles_labels()
             lines2, labels2 = ax_twin.get_legend_handles_labels()
-            ax.legend(lines + lines2, labels + labels2, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncol=5)
-            fig.set_size_inches(6, 4)
+            lines3, labels3 = ax3.get_legend_handles_labels()
+            lines4, labels4 = ax4.get_legend_handles_labels()
+            ax.legend(lines + lines2 + lines3 + lines4, labels + labels2 + labels3 + labels4, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncol=5)
+            fig.set_size_inches(10, 5)
             
             plt.tight_layout()
             plt.gcf().autofmt_xdate()

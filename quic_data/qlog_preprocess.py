@@ -10,9 +10,8 @@ from pytictoc import TicToc
 
 ##### ---------- USER SETTINGS ---------- #####
 # database = "/Volumes/mollyT7/MOXA/"
-# database = "/home/wmnlab/Documents/r12921105"
 # database = "/Users/molly/Desktop/"
-database = "/media/wmnlab/G/quic_data/"
+database = "/home/wmnlab/F/quic_data/"
 dates = ["2024-07-28"]
 exp_names = {
     "QUIC-inf": (3, ["#{:02d}".format(i + 1) for i in range(3)]),
@@ -737,8 +736,8 @@ for date in dates:
                 merged_df = pd.merge(pk_sent_rows[['packet_number', 'epoch_time']], 
                                      pk_rcv_df[['packet_number', 'epoch_time']], 
                                      on='packet_number', how='left', suffixes=('_sent', '_rcv'))
-                # Calculate latency: difference between 'timestamp_rcv' and 'timestamp_sent'
-                pk_sent_rows['latency'] = merged_df['timestamp_rcv'] - merged_df['timestamp_sent']
+                # Calculate latency: difference between 'epoch_time_rcv' and 'epoch_time_sent'
+                pk_sent_rows['latency'] = merged_df['epoch_time_rcv'] - merged_df['epoch_time_sent']
                 ##### ---------- CALCULATING PACKET LATENCY ---------- #####
 
                 ##### ---------- PROCESSED SENT FILE ---------- #####
@@ -877,7 +876,7 @@ for exp in exp_names:
 
 print(all_data_files)
 
-cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger']
+cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'latency', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger']
 for exp in exp_names:
     for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
         ul_lost_df = pd.read_csv(ul_lost_file, encoding="utf-8")
