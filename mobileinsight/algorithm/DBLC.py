@@ -9,8 +9,8 @@ from multiprocessing import Process
 import argparse
 import random
 
-# from myutils.at_commands import AT_Cmd_Runner
-from myutils.functions import *
+from algorithm.myutils.at_commands import AT_Cmd_Runner
+from algorithm.myutils.functions import *
 
 if __name__ == "__main__":
     # get file path
@@ -30,8 +30,10 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--baudrate", type=int, help='baudrate', default=9600)
     args = parser.parse_args()
     baudrate = args.baudrate
-    dev1, dev2 = args.device[0], args.device[1]
-    ser1, ser2 = get_ser(parent_folder, *[dev1, dev2])
+    # dev1, dev2 = args.device[0], args.device[1]
+    # ser1, ser2 = get_ser(parent_folder, *[dev1, dev2])
+    dev1 = args.device[0]
+    ser1 = get_ser(parent_folder, *[dev1])
     
     # at_cmd_runner = AT_Cmd_Runner()
     # os.chdir(at_cmd_runner.dir_name) # cd modem utils dir to run at cmd
@@ -58,9 +60,9 @@ if __name__ == "__main__":
     model_folder = os.path.join(parent_folder, 'model') # model path
     # using multi-processing to run prediction model inference on both dual radios
     p1 = Process(target=device_running, args=[dev1, ser1, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
-    p2 = Process(target=device_running, args=[dev2, ser2, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
+    # p2 = Process(target=device_running, args=[dev2, ser2, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
     p1.start()
-    p2.start()
+    # p2.start()
     
     # Sync two device.
     time.sleep(3)
@@ -69,11 +71,11 @@ if __name__ == "__main__":
     
     # Main Process
     try:
-    #     counter = 0 # for convenience
-    #     n_show = int(1/time_slot)
-    #     n_record = int(record_freq/time_slot)
+        # counter = 0 # for convenience
+        # n_show = int(1/time_slot)
+        # n_record = int(record_freq/time_slot)
         while True: 
-    #         # Get prediction and radio info from other multi-process
+            # Get prediction and radio info from other multi-process
             start = time.time()
     #         outs = {}
     #         infos = {}
@@ -148,8 +150,8 @@ if __name__ == "__main__":
         # Stop Record
         print('Main process received KeyboardInterrupt')
         p1.join()
-        p2.join()
-        f_cmd.close()
+        # p2.join()
+        # f_cmd.close()
         time.sleep(1)
         print("Process killed, closed.")
         sys.exit()

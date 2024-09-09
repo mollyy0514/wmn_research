@@ -1,11 +1,11 @@
-#!/usr/bin/python
+    #!/usr/bin/python
 # Filename: lte_measurement_analyzer.py
 
 """
 Devise your own analyzer
 """
 
-from .analyzer import *
+from mobile_insight.analyzer import *
 
 from .utils.lte_ss_collector import LteSignalStrengthCollector, ss_dict
 from .utils.nr_ss_collector import NrSignalStrengthCollector, nr_ss_dict
