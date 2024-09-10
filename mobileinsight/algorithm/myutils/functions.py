@@ -22,7 +22,18 @@ def get_ser(folder, *dev):
     d2s_path = os.path.join(folder, 'device_to_serial.json')
     with open(d2s_path, 'r') as f:
         device_to_serial = json.load(f)
-        return tuple(os.path.join("/dev/serial/by-id", f"usb-Quectel_RM500Q-GL_{device_to_serial[d]}-if00-port0") for d in dev)
+        ser = []
+        for d in dev:
+            if d.startswith("qc"):
+                ser.append(os.path.join("/dev/serial/by-id", f"usb-Quectel_RM500Q-GL_{device_to_serial[d]}-if00-port0"))
+            elif d.startswith("sm"):
+                ser.append(os.path.join("/dev/serial/by-id", f"usb-SAMSUNG_SAMSUNG_Android_{device_to_serial[d]}-if00-port0"))
+        return tuple(ser)
+# def get_ser(folder, *dev):
+#     d2s_path = os.path.join(folder, 'device_to_serial.json')
+#     with open(d2s_path, 'r') as f:
+#         device_to_serial = json.load(f)
+#         return tuple(os.path.join("/dev/serial/by-id", f"usb-SAMSUNG_SAMSUNG_Android_{device_to_serial[d]}-if00-port0") for d in dev)
     
 # Show prediction result if event is predicted.
 def show_predictions(dev, preds, thr = 0.5):
@@ -155,7 +166,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     try:
         src.run() # run mobileinsight to collect feature
     except:
-        # print(traceback.format_exc()) # if you need debug un-comment this
+        print(traceback.format_exc()) # if you need debug un-comment this
         f_out.close()
         time.sleep(.5)
         print(f'End {dev}.')
