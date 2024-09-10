@@ -21,20 +21,20 @@ if __name__ == "__main__":
     t = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
     t = [x.zfill(2) for x in t]  # zero-padding to two digit
     t = '-'.join(t[:3]) + '_' + '-'.join(t[3:])
-    # f = os.path.join('/home/wmnlab/Data/command_Time', f'{t}_cmd_record.csv')
-    # f_cmd = open(f,mode='w')
-    # f_cmd.write('Timestamp,R1,R2\n')
+    f = os.path.join('/home/wmnlab/Data/command_Time', f'{t}_cmd_record.csv')
+    f_cmd = open(f,mode='w')
+    f_cmd.write('Timestamp,R1,R2\n')
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", type=str, nargs='+', help="device: e.g. qc00 qc01")
     parser.add_argument("-b", "--baudrate", type=int, help='baudrate', default=9600)
     args = parser.parse_args()
     baudrate = args.baudrate
-    # dev1, dev2 = args.device[0], args.device[1]
-    # ser1, ser2 = get_ser(parent_folder, *[dev1, dev2])
-    dev1 = args.device[0]
-    ser = get_ser(parent_folder, *[dev1])
-    ser1 = ser[0]
+    dev1, dev2 = args.device[0], args.device[1]
+    ser1, ser2 = get_ser(parent_folder, *[dev1, dev2])
+    # dev1 = args.device[0]
+    # ser = get_ser(parent_folder, *[dev1])
+    # ser1 = ser[0]
 
     # global variable
     # setting1, setting2 = at_cmd_runner.query_band(dev1), at_cmd_runner.query_band(dev2)
@@ -58,9 +58,9 @@ if __name__ == "__main__":
     model_folder = os.path.join(parent_folder, 'model') # model path
     # using multi-processing to run prediction model inference on both dual radios
     p1 = Process(target=device_running, args=[dev1, ser1, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
-    # p2 = Process(target=device_running, args=[dev2, ser2, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
+    p2 = Process(target=device_running, args=[dev2, ser2, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
     p1.start()
-    # p2.start()
+    p2.start()
     
     # Sync two device.
     time.sleep(3)
@@ -69,29 +69,35 @@ if __name__ == "__main__":
     
     # Main Process
     try:
-        # counter = 0 # for convenience
-        # n_show = int(1/time_slot)
-        # n_record = int(record_freq/time_slot)
+        counter = 0 # for convenience
+        n_show = int(1/time_slot)
+        n_record = int(record_freq/time_slot)
         while True: 
             # Get prediction and radio info from other multi-process
             start = time.time()
-    #         outs = {}
-    #         infos = {}
-    #         while not output_queue.empty():
-    #             pairs = output_queue.get() 
-    #             outs[pairs[0]] = pairs[1]
-    #             infos[pairs[0]] = pairs[2]
-            
-    #         if len(outs) == 2:
+            outs = {}
+            infos = {}
+            while not output_queue.empty():
+                pairs = output_queue.get() 
                 
-    #             out1, out2 = outs[dev1], outs[dev2]
-    #             info1, info2 = infos[dev1], infos[dev2] # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
-    #             if (counter % n_record) == 0:
-    #                 f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(out1['rlf']), str(out2['rlf'])]) + '\n')
-    #             # Show prediction result during experiment. 
-    #             if counter == n_show-1:
-    #                 show_predictions(dev1, out1); show_predictions(dev2, out2)
-    #             counter = (counter+1) % n_show
+                local_file = os.path.join('/home/wmnlab/Data/', f'{t}_record_pair.csv')
+                android_file = os.path.join('/sdcard/udp_phone_exp/', f'{t}_record_pair.csv')
+                # Sending the string to the Android device
+                send_string_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
+                
+                outs[pairs[0]] = pairs[1]  # the probability of RLF
+                infos[pairs[0]] = pairs[2]  # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
+            
+            if len(outs) == 2:
+
+                out1, out2 = outs[dev1], outs[dev2]
+                info1, info2 = infos[dev1], infos[dev2]
+                if (counter % n_record) == 0:
+                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(out1['rlf']), str(out2['rlf'])]) + '\n')
+                # Show prediction result during experiment. 
+                if counter == n_show-1:
+                    show_predictions(dev1, out1); show_predictions(dev2, out2)
+                counter = (counter+1) % n_show
                 
     #             ################ Action Here ################
     #             # Do nothing if too close to previous action.
@@ -140,16 +146,16 @@ if __name__ == "__main__":
     #                         setting2, rest = choice, rest_time         
     #             #############################################
                 
-    #         end = time.time()
-    #         if time_slot - (end-start) > 0:
-    #             time.sleep(time_slot-(end-start))
+            end = time.time()
+            if time_slot - (end-start) > 0:
+                time.sleep(time_slot-(end-start))
       
     except KeyboardInterrupt:
         # Stop Record
         print('Main process received KeyboardInterrupt')
         p1.join()
-        # p2.join()
-        # f_cmd.close()
+        p2.join()
+        f_cmd.close()
         time.sleep(1)
         print("Process killed, closed.")
         sys.exit()

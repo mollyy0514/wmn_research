@@ -6,6 +6,7 @@ import numpy as np
 from threading import Timer
 import datetime as dt
 import traceback
+import subprocess
 
 from colorama import Fore, Style
 import colorama
@@ -170,3 +171,33 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
         f_out.close()
         time.sleep(.5)
         print(f'End {dev}.')
+
+def send_string_to_phone(pairs, parent_folder, local_file_path, android_file_path, dev1, dev2):
+    try:
+        def convert_item(item):
+            if isinstance(item, (np.float32, np.float64)):
+                return float(item)
+            elif isinstance(item, dict):
+                return {key: (float(value) if isinstance(value, (np.float32, np.float64)) else value) for key, value in item.items()}
+            return item
+        
+        converted_list = [convert_item(item) for item in pairs]
+        
+        # Step 1: Overwrite the local file with the new string
+        with open(local_file_path, 'w') as f:
+            # f.write(string)
+            json.dump(converted_list, f)
+
+        d2s_path = os.path.join(parent_folder, 'device_to_serial.json')
+        with open(d2s_path, 'r') as f:
+            device_to_serial = json.load(f)
+            # Step 2: Use adb to push the file to the Android device
+            adb_push_dev1_cmd = f"adb -s {device_to_serial[dev1]} push {local_file_path} {android_file_path}"
+            adb_push_dev2_cmd = f"adb -s {device_to_serial[dev2]} push {local_file_path} {android_file_path}"
+            subprocess.run(adb_push_dev1_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(adb_push_dev2_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while executing adb commands: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
