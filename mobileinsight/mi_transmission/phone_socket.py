@@ -150,7 +150,7 @@ def transmit(s):
     print("transmit", seq, "packets")
 
 def read_info_file(data_list):
-    record_file_path = "/sdcard/udp_mi_exp/Data/record_pair.json"
+    record_file_path = "/sdcard/Data/record_pair.json"
     old_data = ""
     with open(record_file_path, newline='') as f:
         data = json.load(f)
