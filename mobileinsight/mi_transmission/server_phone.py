@@ -115,13 +115,14 @@ def receive(s, dev, port, f_cmd):
             # decode the info record pair data
             fixed_size = 4 * 5
             data_bytes = indata[fixed_size:]
-            data_str = data_bytes.decode('utf-8')
-            data_list = json.loads(data_str)
-            print(data_list)
-            for row in data_list:
-                if row[0] == dev:
-                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(row[1]['rlf']),
-                                          str(row[2]['MN']), str(row[2]['earfcn']), str(row[2]['band']), str(row[2]['SN'])]) + '\n')
+            if data_bytes:
+                data_str = data_bytes.decode('utf-8')
+                data_list = json.loads(data_str)
+                print(data_list)
+                for row in data_list:
+                    if row[0] == dev:
+                        f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(row[1]['rlf']),
+                                            str(row[2]['MN']), str(row[2]['earfcn']), str(row[2]['band']), str(row[2]['SN'])]) + '\n')
 
             # Show information
             if time.time()-start_time > time_slot:

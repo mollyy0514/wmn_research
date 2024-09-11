@@ -128,10 +128,14 @@ def transmit(s):
             # outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big') + redundant
             
             # change random data to mobileinsight info pairs
-            data_str = json.dumps(data_list)
-            data_bytes = data_str.encode('utf-8')
-            outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
-            outdata += data_bytes
+            if data_list != []:
+                data_str = json.dumps(data_list)
+                data_bytes = data_str.encode('utf-8')
+                outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
+                outdata += data_bytes
+            else:
+                outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
+            
 
             # send the outdata
             s.sendto(outdata, (HOST, ports[0]))
