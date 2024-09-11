@@ -144,6 +144,7 @@ def transmit(s):
 
         except Exception as e:
             print(ports[0], e)
+            print(ports[0], data_str)
             stop_threads = True
     stop_threads = True
     print("---transmission timeout---")
