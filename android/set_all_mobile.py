@@ -83,10 +83,10 @@ for device, info in zip(devices, devices_info):
     print(info[2], 'Update tcp_phone_exp!')
     print("-----------------------------------")
 
-    su_cmd = 'rm -rf /sdcard/udp_mi_exp/mi_transmission && cp -r /data/data/com.termux/files/home/wmn_research/mobileinsight/mi_transmission /sdcard/udp_mi_exp'
+    su_cmd = 'rm -rf /sdcard/udp_mi_exp && cp -r /data/data/com.termux/files/home/wmn_research/mobileinsight/mi_transmission /sdcard/udp_mi_exp'
     adb_cmd = f"su -c '{su_cmd}'"
     device.shell(adb_cmd)
-    print(info[2], 'Update udp_mi_exp/transmission!')
+    print(info[2], 'Update udp_mi_exp/mi_transmission!')
     print("-----------------------------------")
 
 print('---End Of File---')

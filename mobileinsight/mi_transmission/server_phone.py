@@ -210,10 +210,10 @@ n = [x.zfill(2) for x in n]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
 pcap_path = '/home/wmnlab/temp'
 # record info pairs file
-f1 = os.path.join(pcap_path, f'{t}_{device[0]}_cmd_record.csv')
+f1 = os.path.join(pcap_path, f'{n}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')
 f1_cmd.write('rlf,MN,earfcn,band,SN\n')
-f2 = os.path.join(pcap_path, f'{t}_{device[1]}_cmd_record.csv')
+f2 = os.path.join(pcap_path, f'{n}_{devices[1]}_cmd_record.csv')
 f2_cmd = open(f2,mode='w')
 f2_cmd.write('rlf,MN,earfcn,band,SN\n')
 # Start subprocess of tcpdump

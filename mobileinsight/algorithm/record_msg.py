@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 pairs = output_queue.get() 
                 
                 local_file = os.path.join('/home/wmnlab/Data', f'record_pair.json')
-                android_file = os.path.join('/sdcard/udp_mi_exp/Data', f'record_pair.json')
+                android_file = os.path.join('/sdcard/Data', f'record_pair.json')
                 # Sending the info pairs to the Android device
                 send_pairs_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
                 
