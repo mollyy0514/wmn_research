@@ -120,8 +120,8 @@ def receive(s, dev, port, f_cmd):
             print(data_list)
             for row in data_list:
                 if row[0] == dev:
-                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), row[1]['rlf'],
-                                          row[2]['MN'], row[2]['earfcn'], row[2]['band'], row[2]['SN'],]) + '\n')
+                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(row[1]['rlf']),
+                                          str(row[2]['MN']), str(row[2]['earfcn']), str(row[2]['band']), str(row[2]['SN'])]) + '\n')
 
             # Show information
             if time.time()-start_time > time_slot:

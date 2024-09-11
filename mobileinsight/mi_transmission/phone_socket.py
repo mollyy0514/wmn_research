@@ -143,7 +143,7 @@ def transmit(s):
             #     prev_transmit = seq
 
         except Exception as e:
-            print(e)
+            print(ports[0], e)
             stop_threads = True
     stop_threads = True
     print("---transmission timeout---")
