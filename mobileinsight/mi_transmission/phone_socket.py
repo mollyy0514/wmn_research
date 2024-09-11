@@ -114,7 +114,7 @@ def transmit(s):
             t = time.time()
             data_list = []
             while t < next_transmit_time:
-                data_list = read_info_file()
+                data_list = read_info_file(data_list)
                 t = time.time()
             next_transmit_time = next_transmit_time + sleeptime
 

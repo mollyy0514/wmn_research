@@ -11,7 +11,7 @@ import datetime as dt
 import argparse
 import subprocess
 import signal
-from udp_phone_exp.device_to_port import device_to_port
+from device_to_port import device_to_port
 
 
 #=================argument parsing======================
