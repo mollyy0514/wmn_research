@@ -7,8 +7,8 @@ import os
 import sys
 import argparse
 import subprocess
-from udp_phone_exp.device_to_port import device_to_port
-from udp_phone_exp.device_to_serial import device_to_serial
+from device_to_port import device_to_port
+from device_to_serial import device_to_serial
 
 #=================argument parsing======================
 parser = argparse.ArgumentParser()
@@ -84,7 +84,7 @@ def all_process_end(procs):
 procs = []
 
 for device, port, serial in zip(devices, ports, serials):
-    su_cmd = 'cd sdcard/udp_phone_exp && python3 udp_socket_phone.py' + \
+    su_cmd = 'cd sdcard/udp_mi_exp && python3 transmission/phone_socket.py' + \
             f'-H {HOST} -d {device} -p {port[0]} {port[1]} -b {bitrate} -l {length} -t {total_time}'
     adb_cmd = f"su -c '{su_cmd}'"
     p = subprocess.Popen([f'adb -s {serial} shell "{adb_cmd}"'], shell=True, preexec_fn = os.setpgrp)

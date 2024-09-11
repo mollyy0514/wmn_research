@@ -80,16 +80,15 @@ if __name__ == "__main__":
             while not output_queue.empty():
                 pairs = output_queue.get() 
                 
-                local_file = os.path.join('/home/wmnlab/Data/', f'{t}_record_pair.csv')
-                android_file = os.path.join('/sdcard/udp_phone_exp/', f'{t}_record_pair.csv')
-                # Sending the string to the Android device
-                send_string_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
+                local_file = os.path.join('/home/wmnlab/Data', f'record_pair.json')
+                android_file = os.path.join('/sdcard/udp_mi_exp/Data', f'record_pair.json')
+                # Sending the info pairs to the Android device
+                send_pairs_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
                 
                 outs[pairs[0]] = pairs[1]  # the probability of RLF
                 infos[pairs[0]] = pairs[2]  # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
             
             if len(outs) == 2:
-
                 out1, out2 = outs[dev1], outs[dev2]
                 info1, info2 = infos[dev1], infos[dev2]
                 if (counter % n_record) == 0:

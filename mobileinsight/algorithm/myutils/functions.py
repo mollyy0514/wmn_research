@@ -172,7 +172,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
         time.sleep(.5)
         print(f'End {dev}.')
 
-def send_string_to_phone(pairs, parent_folder, local_file_path, android_file_path, dev1, dev2):
+def send_pairs_to_phone(pairs, parent_folder, local_file_path, android_file_path, dev1, dev2):
     try:
         def convert_item(item):
             if isinstance(item, (np.float32, np.float64)):
@@ -180,12 +180,11 @@ def send_string_to_phone(pairs, parent_folder, local_file_path, android_file_pat
             elif isinstance(item, dict):
                 return {key: (float(value) if isinstance(value, (np.float32, np.float64)) else value) for key, value in item.items()}
             return item
-        
+
         converted_list = [convert_item(item) for item in pairs]
-        
+
         # Step 1: Overwrite the local file with the new string
         with open(local_file_path, 'w') as f:
-            # f.write(string)
             json.dump(converted_list, f)
 
         d2s_path = os.path.join(parent_folder, 'device_to_serial.json')

@@ -7,11 +7,12 @@ import threading
 import multiprocessing
 import os
 import sys
+import json
 import datetime as dt
 import argparse
 import subprocess
 import signal
-from udp_phone_exp.device_to_port import device_to_port
+from device_to_port import device_to_port
 
 
 #=================argument parsing======================
@@ -88,7 +89,7 @@ def fill_udp_addr(s):
     indata, addr = s.recvfrom(1024)
     udp_addr[s] = addr 
 
-def receive(s, dev, port):
+def receive(s, dev, port, f_cmd):
     global stop_threads
     print(f"wait for indata from {dev} at {port}...")
 
@@ -110,6 +111,17 @@ def receive(s, dev, port):
 
             seq = int(indata.hex()[32:40], 16)
             ts = int(int(indata.hex()[16:24], 16)) + float("0." + str(int(indata.hex()[24:32], 16)))
+
+            # decode the info record pair data
+            fixed_size = 4 * 5
+            data_bytes = indata[fixed_size:]
+            data_str = data_bytes.decode('utf-8')
+            data_list = json.loads(data_str)
+            print(data_list)
+            for row in data_list:
+                if row[0] == dev:
+                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), row[1]['rlf'],
+                                          row[2]['MN'], row[2]['earfcn'], row[2]['band'], row[2]['SN'],]) + '\n')
 
             # Show information
             if time.time()-start_time > time_slot:
@@ -191,13 +203,20 @@ for t in t_fills:
     t.join()
 print('Successful get udp addr!')
 
-# Start subprocess of tcpdump
+# experiment data record files
 now = dt.datetime.today()
 n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
 n = [x.zfill(2) for x in n]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
 pcap_path = '/home/wmnlab/temp'
-
+# record info pairs file
+f1 = os.path.join(pcap_path, f'{t}_{device[0]}_cmd_record.csv')
+f1_cmd = open(f1,mode='w')
+f1_cmd.write('rlf,MN,earfcn,band,SN\n')
+f2 = os.path.join(pcap_path, f'{t}_{device[1]}_cmd_record.csv')
+f2_cmd = open(f2,mode='w')
+f2_cmd.write('rlf,MN,earfcn,band,SN\n')
+# Start subprocess of tcpdump
 tcpproc_list = []
 for device, port in zip(devices, ports):
     pcap = os.path.join(pcap_path, f"server_pcap_BL_{device}_{port[0]}_{port[1]}_{n}_sock.pcap")
@@ -208,7 +227,10 @@ time.sleep(1)
 # Create and start UL receive multi-thread
 rx_threads = []
 for s, dev, port in zip(rx_sockets, devices, ports):
-    t_rx = threading.Thread(target = receive, args=(s, dev, port[0]), daemon=True)
+    if (dev == device[0]):
+        t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f1_cmd), daemon=True)
+    else:
+        t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f2_cmd), daemon=True)
     rx_threads.append(t_rx)
     t_rx.start()
 
