@@ -89,7 +89,7 @@ def fill_udp_addr(s):
     indata, addr = s.recvfrom(1024)
     udp_addr[s] = addr 
 
-def receive(s, dev, port, f_cmd):
+def receive(s, dev, port, record_file, f_cmd):
     global stop_threads
     print(f"wait for indata from {dev} at {port}...")
 
@@ -115,13 +115,18 @@ def receive(s, dev, port, f_cmd):
             # decode the info record pair data
             fixed_size = 4 * 5
             data_bytes = indata[fixed_size:fixed_size + 96]
-            if data_bytes:
+            try:
                 data_str = data_bytes.decode('utf-8')
                 data_list = json.loads(data_str)
-                for row in data_list:
-                    if row[0] == dev:
-                        f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(row[1]['rlf']),
-                                            str(row[2]['MN']), str(row[2]['earfcn']), str(row[2]['band']), str(row[2]['SN'])]) + '\n')
+                with open(record_file, 'r') as f:
+                    lines = f.read().splitlines()
+                    last_line = lines[-1]
+                    if data_list[0] == dev and str(data_list[1]['rlf']) != last_line[1] and str(data_list[2]['MN']) != last_line[2] 
+                    and str(data_list[2]['earfcn']) != last_line[3] str(data_list[2]['band']) != last_line[4] and  str(data_list[2]['SN']) != last_line[5]:
+                        f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']),
+                                            str(data_list[2]['MN']), str(data_list[2]['earfcn']), str(data_list[2]['band']), str(data_list[2]['SN'])]) + '\n')
+            except:
+                data_str = ""
 
             # Show information
             if time.time()-start_time > time_slot:
@@ -228,9 +233,9 @@ time.sleep(1)
 rx_threads = []
 for s, dev, port in zip(rx_sockets, devices, ports):
     if (dev == devices[0]):
-        t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f1_cmd), daemon=True)
+        t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f1, f1_cmd), daemon=True)
     else:
-        t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f2_cmd), daemon=True)
+        t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f2, f2_cmd), daemon=True)
     rx_threads.append(t_rx)
     t_rx.start()
 

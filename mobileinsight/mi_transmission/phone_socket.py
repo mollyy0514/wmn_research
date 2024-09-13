@@ -109,14 +109,12 @@ def transmit(s):
     
     time_slot = 1
     
-    old_data = []
     while time.time() - start_time < total_time and not stop_threads:
         try:
             t = time.time()
             data_list = []
             while t < next_transmit_time:
-                data_list = read_info_file(data_list, old_data)
-                old_data = data_list
+                data_list = read_info_file(data_list)
                 t = time.time()
             next_transmit_time = next_transmit_time + sleeptime
 
@@ -136,7 +134,7 @@ def transmit(s):
                 outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
                 outdata += data_bytes
                 # random data
-                redundant = os.urandom(length_packet-4*5 - len(data_str))
+                redundant = os.urandom(length_packet - 4*5 - len(data_str))
                 outdata += redundant
             else:
                 # random data
@@ -160,13 +158,12 @@ def transmit(s):
     print("---transmission timeout---")
     print("transmit", seq, "packets")
 
-def read_info_file(data_list, old_data):
+def read_info_file(data_list):
     record_file_path = "/sdcard/Data/record_pair.json"
     # only one row once
     try:
         with open(record_file_path, newline='') as f:
             data = json.load(f)
-            if (data != old_data):
                 data_list = data
     except:
         data_list = []
