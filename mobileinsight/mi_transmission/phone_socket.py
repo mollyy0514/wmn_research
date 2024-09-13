@@ -164,7 +164,7 @@ def read_info_file(data_list):
     try:
         with open(record_file_path, newline='') as f:
             data = json.load(f)
-                data_list = data
+            data_list = data
     except:
         data_list = []
     return data_list
