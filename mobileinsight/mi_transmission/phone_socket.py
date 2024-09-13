@@ -129,12 +129,12 @@ def transmit(s):
             
             # change random data to mobileinsight info pairs
             print(data_list)
-            if data_list != []:
+            try:
                 data_str = json.dumps(data_list)
                 data_bytes = data_str.encode('utf-8')
                 outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
                 outdata += data_bytes
-            else:
+            except:
                 outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
             
 
