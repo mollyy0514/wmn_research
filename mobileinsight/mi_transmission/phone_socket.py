@@ -109,12 +109,14 @@ def transmit(s):
     
     time_slot = 1
     
+    old_data = []
     while time.time() - start_time < total_time and not stop_threads:
         try:
             t = time.time()
             data_list = []
             while t < next_transmit_time:
-                data_list = read_info_file(data_list)
+                data_list = read_info_file(data_list, old_data)
+                old_data = data_list
                 t = time.time()
             next_transmit_time = next_transmit_time + sleeptime
 
@@ -124,19 +126,22 @@ def transmit(s):
             microsec = int((t - int(t))*1000000)
 
             # random data
-            # redundant = os.urandom(length_packet-4*5)
+            redundant = os.urandom(length_packet-4*5)
             # outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big') + redundant
             
             # change random data to mobileinsight info pairs
-            print(data_list)
-            try:
+            if data_list != []:
                 data_str = json.dumps(data_list)
                 data_bytes = data_str.encode('utf-8')
                 outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
                 outdata += data_bytes
-            except:
-                outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big')
-            
+                # random data
+                redundant = os.urandom(length_packet-4*5 - len(data_str))
+                outdata += redundant
+            else:
+                # random data
+                redundant = os.urandom(length_packet-4*5)
+                outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big') + redundant
 
             # send the outdata
             s.sendto(outdata, (HOST, ports[0]))
@@ -155,13 +160,16 @@ def transmit(s):
     print("---transmission timeout---")
     print("transmit", seq, "packets")
 
-def read_info_file(data_list):
+def read_info_file(data_list, old_data):
     record_file_path = "/sdcard/Data/record_pair.json"
-    old_data = ""
-    with open(record_file_path, newline='') as f:
-        data = json.load(f)
-        if (data != old_data):
-            data_list.append(data)
+    # only one row once
+    try:
+        with open(record_file_path, newline='') as f:
+            data = json.load(f)
+            if (data != old_data):
+                data_list = data
+    except:
+        data_list = []
     return data_list
 
 # Create DL receive and UL transmit multi-client sockets

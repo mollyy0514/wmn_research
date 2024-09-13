@@ -114,11 +114,10 @@ def receive(s, dev, port, f_cmd):
 
             # decode the info record pair data
             fixed_size = 4 * 5
-            data_bytes = indata[fixed_size:]
+            data_bytes = indata[fixed_size:fixed_size + 96]
             if data_bytes:
                 data_str = data_bytes.decode('utf-8')
                 data_list = json.loads(data_str)
-                print(data_list)
                 for row in data_list:
                     if row[0] == dev:
                         f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(row[1]['rlf']),
@@ -213,10 +212,10 @@ pcap_path = '/home/wmnlab/temp'
 # record info pairs file
 f1 = os.path.join(pcap_path, f'{n}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')
-f1_cmd.write('rlf,MN,earfcn,band,SN\n')
+f1_cmd.write('Timestamp,rlf,MN,earfcn,band,SN\n')
 f2 = os.path.join(pcap_path, f'{n}_{devices[1]}_cmd_record.csv')
 f2_cmd = open(f2,mode='w')
-f2_cmd.write('rlf,MN,earfcn,band,SN\n')
+f2_cmd.write('Timestamp,rlf,MN,earfcn,band,SN\n')
 # Start subprocess of tcpdump
 tcpproc_list = []
 for device, port in zip(devices, ports):
@@ -228,7 +227,7 @@ time.sleep(1)
 # Create and start UL receive multi-thread
 rx_threads = []
 for s, dev, port in zip(rx_sockets, devices, ports):
-    if (dev == device[0]):
+    if (dev == devices[0]):
         t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f1_cmd), daemon=True)
     else:
         t_rx = threading.Thread(target = receive, args=(s, dev, port[0], f2_cmd), daemon=True)
