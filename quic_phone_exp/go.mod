@@ -2,7 +2,7 @@ module quic_exp
 
 go 1.21.1
 
-require github.com/mollyy0514/quic-go v0.0.0-20240902054500-b88316dcebe6
+require github.com/mollyy0514/quic-go v0.0.0-20240916070632-eca2901dc24a
 
 require (
 	github.com/francoispqt/gojay v1.2.13 // indirect
