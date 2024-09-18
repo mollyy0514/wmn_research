@@ -9,5 +9,6 @@
 *.jpeg
 *.db
 .DS_Store
+__pychache__
 test.py
 test.ipynb
