@@ -67,7 +67,7 @@ for device, info in zip(devices, devices_info):
             device.shell("su -c 'chmod +x /bin/{}'".format(tool))
 
     # git pull the latest version and go build
-    print(info[2], device.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research && /data/git restore . && /data/git pull && /data/git checkout main'"))
+    print(info[2], device.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research && /data/git restore . && /data/git pull && /data/git checkout cwnd_adjust'"))
 
     # UDP_phone_exp
     su_cmd = 'rm -rf /sdcard/udp_phone_exp && cp -r /data/data/com.termux/files/home/wmn_research/udp_phone_exp /sdcard'
