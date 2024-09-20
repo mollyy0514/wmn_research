@@ -114,12 +114,12 @@ def receive(s, dev, port, f_cmd):
 
             # decode the info record pair data
             fixed_size = 4 * 5
-            data_bytes = indata[fixed_size:fixed_size + 96]
+            data_bytes = indata[fixed_size:fixed_size + 156]
             try:
                 data_str = data_bytes.decode('utf-8')
                 data_list = json.loads(data_str)
                 if data_list[0] == dev:
-                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']),
+                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[1]['lte_ho']), str(data_list[1]['nr_ho']),
                                         str(data_list[2]['MN']), str(data_list[2]['earfcn']), str(data_list[2]['band']), str(data_list[2]['SN'])]) + '\n')
             except:
                 data_str = ""
@@ -206,17 +206,17 @@ print('Successful get udp addr!')
 
 # experiment data record files
 now = dt.datetime.today()
-n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
-n = [x.zfill(2) for x in n]  # zero-padding to two digit
+d = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
+n = [x.zfill(2) for x in d]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
 pcap_path = '/home/wmnlab/temp'
 # record info pairs file
-f1 = os.path.join(pcap_path, f'{n}_{devices[0]}_cmd_record.csv')
+f1 = os.path.join(pcap_path, f'{d}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')
-f1_cmd.write('Timestamp,rlf,MN,earfcn,band,SN\n')
-f2 = os.path.join(pcap_path, f'{n}_{devices[1]}_cmd_record.csv')
+f1_cmd.write('Timestamp,rlf,lte_ho,nr_ho,MN,earfcn,band,SN\n')
+f2 = os.path.join(pcap_path, f'{d}_{devices[1]}_cmd_record.csv')
 f2_cmd = open(f2,mode='w')
-f2_cmd.write('Timestamp,rlf,MN,earfcn,band,SN\n')
+f2_cmd.write('Timestamp,rlf,lte_ho,nr_ho,MN,earfcn,band,SN\n')
 # Start subprocess of tcpdump
 tcpproc_list = []
 for device, port in zip(devices, ports):

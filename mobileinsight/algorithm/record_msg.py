@@ -23,7 +23,7 @@ if __name__ == "__main__":
     t = '-'.join(t[:3]) + '_' + '-'.join(t[3:])
     f = os.path.join('/home/wmnlab/Data/command_Time', f'{t}_cmd_record.csv')
     f_cmd = open(f,mode='w')
-    f_cmd.write('Timestamp,R1,R2\n')
+    f_cmd.write('Timestamp,RLF_R1,RLF_R2,LTE_HO_R1,LTE_HO_R2,NR_HO_R1,NR_HO_R2\n')
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", type=str, nargs='+', help="device: e.g. qc00 qc01")
@@ -85,66 +85,26 @@ if __name__ == "__main__":
                 # Sending the info pairs to the Android device
                 send_pairs_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
                 
-                outs[pairs[0]] = pairs[1]  # the probability of RLF
-                infos[pairs[0]] = pairs[2]  # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
+                outs[pairs[0]] = [pairs[1], pairs[2], pairs[3]]  # the probability of RLF
+                infos[pairs[0]] = pairs[4]  # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
             
             if len(outs) == 2:
-                out1, out2 = outs[dev1], outs[dev2]
+                rlf_out1, rlf_out2 = outs[dev1][0], outs[dev2][0]
+                lte_ho_out1, lte_ho_out2 = outs[dev1][1], outs[dev2][1]
+                nr_ho_out1, nr_ho_out2 = outs[dev1][2], outs[dev2][2]
                 info1, info2 = infos[dev1], infos[dev2]
                 if (counter % n_record) == 0:
-                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(out1['rlf']), str(out2['rlf'])]) + '\n')
+                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), 
+                                          str(rlf_out1['rlf']), str(rlf_out2['rlf']), 
+                                          str(rlf_out1['lte_ho']), str(rlf_out2['lte_ho']), 
+                                          str(rlf_out1['nr_ho']), str(rlf_out2['nr_ho']), ]) + '\n')
                 # Show prediction result during experiment. 
                 if counter == n_show-1:
-                    show_predictions(dev1, out1); show_predictions(dev2, out2)
+                    show_predictions(dev1, rlf_out1); show_predictions(dev2, rlf_out2)
+                    show_predictions(dev1, lte_ho_out1); show_predictions(dev2, lte_ho_out2)
+                    show_predictions(dev1, nr_ho_out1); show_predictions(dev2, nr_ho_out2)
                 counter = (counter+1) % n_show
-                
-    #             ################ Action Here ################
-    #             # Do nothing if too close to previous action.
-    #             if rest > 0:
-    #                 if rest.is_integer():
-    #                     print(f'Rest for {rest} more second.')
-    #                 rest -= time_slot
-    #             else:
-    #                 case1, prob1, case2, prob2 = class_far_close(out1, out2) 
-    #                 if case1 == 'Far' and case2 == 'Far':
-    #                     pass # Fine, let's pass first.
-                    
-    #                 elif case1 == 'Far' and case2 == 'Close':
-    #                     if info1['MN'] == info2['MN']: # check if dual radios share the same PCI
-    #                         # random select band choice from all_band_choice1 that do not repeat with previous radio1/radio2 band
-    #                         choices = [c for c in all_band_choice2 if (info1['band'] not in c and info2['band'] not in c)] 
-    #                         choice =  random.sample(choices, 1)[0]  
-    #                         print(f'same pci {dev1} far but {dev2} close!!!')
-    #                         # record action time in f_cmd
-    #                         f_cmd.write( ','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), '', 'action'])+'\n' )
-    #                         at_cmd_runner.change_band(dev2, choice, setting2) # action
-    #                         setting2, rest = choice, rest_time # change global vars after action （necessary）
-                    
-    #                 elif case1 == 'Close' and case2 == 'Far':
-    #                     if info1['MN'] == info2['MN']:
-    #                         choices = [c for c in all_band_choice1 if (info1['band'] not in c)] 
-    #                         choice =  random.sample(choices, 1)[0]
-    #                         print(f'same pci {dev2} far but {dev1} close!!!')
-    #                         f_cmd.write( ','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), 'action', ''])+'\n' )
-    #                         at_cmd_runner.change_band(dev1, choice, setting1) 
-    #                         setting1, rest = choice, rest_time
-                    
-    #                 elif case1 == 'Close' and case2 == 'Close':         
-    #                     print(f'R1/R2 both close')
-    #                     if prob1 > prob2:
-    #                         choices = [c for c in all_band_choice1 if (info1['band'] not in c)] 
-    #                         choice =  random.sample(choices, 1)[0]
-    #                         f_cmd.write( ','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), 'action', ''])+'\n' )
-    #                         at_cmd_runner.change_band(dev1, choice, setting1)
-    #                         setting1, rest = choice, rest_time
-    #                     else:
-    #                         choices = [c for c in all_band_choice2 if (info1['band'] not in c and info2['band'] not in c)] 
-    #                         choice =  random.sample(choices, 1)[0]
-    #                         f_cmd.write( ','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), '', 'action'])+'\n' )
-    #                         at_cmd_runner.change_band(dev2, choice, setting2)
-    #                         setting2, rest = choice, rest_time         
-    #             #############################################
-                
+
             end = time.time()
             if time_slot - (end-start) > 0:
                 time.sleep(time_slot-(end-start))

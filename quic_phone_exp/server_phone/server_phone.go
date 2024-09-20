@@ -246,7 +246,8 @@ func EchoQuicServer(host string, quicPort int, ul bool, duration int, logFileDir
 			return qlog.NewConnectionTracer(f, p, connID)
 		},
 	}
-	listener, err := quic.ListenAddr(fmt.Sprintf("%s:%d", host, quicPort), generateTLSConfig(quicPort, logFileDirPath), &quicConfig)
+	dev := devices.Port_to_device[fmt.Sprintf("%02d",quicPort)]
+	listener, err := quic.ListenAddr(dev, fmt.Sprintf("%s:%d", host, quicPort), generateTLSConfig(quicPort, logFileDirPath), &quicConfig)
 	if err != nil {
 		return err
 	}

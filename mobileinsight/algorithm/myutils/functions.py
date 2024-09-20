@@ -41,6 +41,12 @@ def show_predictions(dev, preds, thr = 0.5):
     
     if preds['rlf'] > thr:
         print(f'{Fore.RED}{dev} Prediction: Near RLF!!!{Style.RESET_ALL}')
+    # merge eNB HO and MN HO from Table 3 and refer to them as LTE HO
+    if preds['lte_ho'] > thr:
+        print(f'{Fore.RED}{dev} Prediction: Near LTE_HO!!!{Style.RESET_ALL}')
+    # SN HO is referred to as NR HO
+    if preds['sn_ho'] > thr:
+        print(f'{Fore.RED}{dev} Prediction: Near SN_HO!!!{Style.RESET_ALL}')
 
 HOs = ['LTE_HO', 'MN_HO', 'SN_setup','SN_Rel', 'SN_HO', 'RLF', 'SCG_RLF']
 def show_HO(dev, analyzer):
@@ -80,7 +86,11 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     
     # Loading Model
     rlf_classifier = os.path.join(model_folder, 'rlf_cls_xgb.json')
-    predictor = Predictor(rlf = rlf_classifier)
+    rlf_predictor = Predictor(rlf = rlf_classifier)
+    lte_ho_classifier = os.path.join(model_folder, 'lte_HO_cls_xgb.json')
+    lte_ho_predictor = Predictor(lte_cls = lte_ho_classifier)
+    nr_ho_classifier = os.path.join(model_folder, 'nr_HO_cls_xgb.json')
+    nr_ho_predictor = Predictor(nr_cls = nr_ho_classifier)
 
     src = OnlineMonitor()
     src.set_serial_port(ser)  # serial port
@@ -105,14 +115,19 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     # save model inference record
     save_path = os.path.join('/home/wmnlab/Data/record', f"record_{dev}_{t}.csv")
     f_out = open(save_path, 'w')
-    f_out.write(','.join( ['Timestamp'] + selected_features + list(predictor.models.keys()) ) + '\n')
+    f_out.write(','.join( ['Timestamp'] + selected_features 
+                         + list(rlf_predictor.models.keys()) 
+                         + list(lte_ho_predictor.models.keys()) 
+                         + list(nr_ho_predictor.models.keys())) + '\n')
    
     # declare nonlocal, for convenience
     n_count = int(1/time_slot)
     n_record = int(record_freq/time_slot)
     x_ins = [ [] for _ in range(n_count)]
     
-    models_num = len(predictor.models)
+    rlf_models_num = len(rlf_predictor.models)
+    lte_ho_models_num = len(lte_ho_predictor.models)
+    nr_ho_models_num = len(nr_ho_predictor.models)
     
     def run_prediction(i):
         
@@ -138,20 +153,25 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
             # record
             if (i % n_record) == 0:
                 w = [start_time.strftime("%Y-%m-%d %H:%M:%S.%f")] + [str(e) for e in list(features)]
-                try: f_out.write(','.join(w + [''] * models_num) + '\n') 
+                try: 
+                    f_out.write(','.join(w + [''] * rlf_models_num) 
+                                + ','.join(w + [''] * lte_ho_models_num) 
+                                + ','.join(w + [''] * nr_ho_models_num) + '\n') 
                 except: pass
             
         else:
             x_in.append(features)
             f_in = np.concatenate(x_in).flatten()
-            out = predictor.foward(f_in) # inference with pre-trained model    
+            rlf_out = rlf_predictor.foward(f_in) # inference with pre-trained model    
+            lte_ho_out = lte_ho_predictor.foward(f_in)
+            nr_ho_out = nr_ho_predictor.foward(f_in)
             x_in = x_in[1:]
             # record
             if (i % n_record) == 0:
-                w = [start_time.strftime("%Y-%m-%d %H:%M:%S.%f")]+[str(e) for e in list(features) + list(out.values())]
+                w = [start_time.strftime("%Y-%m-%d %H:%M:%S.%f")]+[str(e) for e in list(features) + list(rlf_out.values()) + list(lte_ho_out.values()) + list(nr_ho_out.values())]
                 try: f_out.write(','.join(w) + ',\n')
                 except: pass
-            output_queue.put([dev, out, feature_extracter.cell_info])     
+            output_queue.put([dev, rlf_out, lte_ho_out, nr_ho_out, feature_extracter.cell_info])     
 
         x_ins[i] = x_in
         i = (i+1) % n_count
