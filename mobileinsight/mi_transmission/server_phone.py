@@ -123,13 +123,13 @@ def receive(s, dev, port, f_cmd):
                     data_bytes = data_bytes[:i]
                     break
             now = dt.datetime.now()
-            tmp_record_file = os.path.join("/home/wmnlab/temp", f"{now.year}{now.month}{now.day}_{dev}_tmp_record.txt")
+            tmp_record_file = os.path.join("/home/wmnlab/temp", f"{now.year}{now.month:02d}{now.day:02d}_{dev}_tmp_record.txt")
             try:
                 data_str = data_bytes.decode('utf-8')
                 data_list = json.loads(data_str)
                 if data_list[0] == dev:
                     # Write in the records
-                    f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_cls']), str(data_list[3]['nr_cls']),
+                    f_cmd.write('@'.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_cls']), str(data_list[3]['nr_cls']),
                                         str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN'])]) + '\n')
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
