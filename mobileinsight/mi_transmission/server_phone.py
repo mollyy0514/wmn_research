@@ -114,7 +114,14 @@ def receive(s, dev, port, f_cmd):
 
             # decode the info record pair data
             fixed_size = 4 * 5
-            data_bytes = indata[fixed_size:fixed_size + 164]
+            data_bytes = indata[fixed_size:]
+            for i in range(100, len(data_bytes)):
+                try:
+                    curr = bytes([data_bytes[i]]).decode('utf-8')
+                    next = bytes([data_bytes[i+1]]).decode('utf-8')
+                except Exception as e:
+                    data_bytes = data_bytes[:i]
+                    break
             now = dt.datetime.now()
             tmp_record_file = os.path.join("/home/wmnlab/temp", f"{now.year}{now.month}{now.day}_{dev}_tmp_record.txt")
             try:
@@ -122,10 +129,11 @@ def receive(s, dev, port, f_cmd):
                 data_list = json.loads(data_str)
                 if data_list[0] == dev:
                     # Write in the records
-                    f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_ho']), str(data_list[3]['nr_ho']),
+                    f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_cls']), str(data_list[3]['nr_cls']),
                                         str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN'])]) + '\n')
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
+                        file.write(f"{now.strftime("%Y-%m-%d %H:%M:%S.%f")},")
                         # Iterate through the list and write each item on a new line
                         for i in range(len(data_list)):
                             if i < len(data_list) - 1:
