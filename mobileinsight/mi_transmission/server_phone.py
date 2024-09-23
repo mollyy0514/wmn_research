@@ -133,7 +133,7 @@ def receive(s, dev, port, f_cmd):
                                         str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN'])]) + '\n')
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
-                        file.write(f"{now.strftime("%Y-%m-%d %H:%M:%S.%f")},")
+                        file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")},')
                         # Iterate through the list and write each item on a new line
                         for i in range(len(data_list)):
                             if i < len(data_list) - 1:
@@ -232,10 +232,10 @@ pcap_path = '/home/wmnlab/temp'
 # record info pairs file
 f1 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')
-f1_cmd.write('Timestamp,rlf,lte_ho,nr_ho,MN,earfcn,band,SN\n')
+f1_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN\n')
 f2 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[1]}_cmd_record.csv')
 f2_cmd = open(f2,mode='w')
-f2_cmd.write('Timestamp,rlf,lte_ho,nr_ho,MN,earfcn,band,SN\n')
+f2_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN\n')
 # Start subprocess of tcpdump
 tcpproc_list = []
 for device, port in zip(devices, ports):
