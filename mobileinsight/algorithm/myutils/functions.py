@@ -39,14 +39,21 @@ def get_ser(folder, *dev):
 # Show prediction result if event is predicted.
 def show_predictions(dev, preds, thr = 0.5):
     
-    if preds['rlf'] > thr:
-        print(f'{Fore.RED}{dev} Prediction: Near RLF!!!{Style.RESET_ALL}')
-    # merge eNB HO and MN HO from Table 3 and refer to them as LTE HO
-    if preds['lte_ho'] > thr:
-        print(f'{Fore.RED}{dev} Prediction: Near LTE_HO!!!{Style.RESET_ALL}')
-    # SN HO is referred to as NR HO
-    if preds['sn_ho'] > thr:
-        print(f'{Fore.RED}{dev} Prediction: Near SN_HO!!!{Style.RESET_ALL}')
+    try:
+        if preds['rlf'] > thr:
+            print(f'{Fore.RED}{dev} Prediction: Near RLF!!!{Style.RESET_ALL}')
+    except:
+        try:
+            # merge eNB HO and MN HO from Table 3 and refer to them as LTE HO
+            if preds['lte_cls'] > thr:
+                print(f'{Fore.RED}{dev} Prediction: Near LTE_HO!!!{Style.RESET_ALL}')
+        except:
+            try:
+                # SN HO is referred to as NR HO
+                if preds['nr_cls'] > thr:
+                    print(f'{Fore.RED}{dev} Prediction: Near SN_HO!!!{Style.RESET_ALL}')
+            except:
+                print("no preds['rlf'], preds['lte_cls'], preds['nr_cls']")
 
 HOs = ['LTE_HO', 'MN_HO', 'SN_setup','SN_Rel', 'SN_HO', 'RLF', 'SCG_RLF']
 def show_HO(dev, analyzer):

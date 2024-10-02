@@ -72,12 +72,12 @@ if __name__ == "__main__":
         counter = 0 # for convenience
         n_show = int(1/time_slot)
         n_record = int(record_freq/time_slot)
-        old_pairs = []
         while True: 
             # Get prediction and radio info from other multi-process
             start = time.time()
             outs = {}
             infos = {}
+            old_pairs = {}
             while not output_queue.empty():
                 pairs = output_queue.get() 
                 
@@ -85,21 +85,20 @@ if __name__ == "__main__":
                 android_file = os.path.join('/sdcard/Data', f'record_pair.json')
                 # Sending the info pairs to the Android device
                 update_needed = False
-                if len(old_pairs) != len(pairs):
+                if len(old_pairs[pairs[0]]) != len(pairs):
                     update_needed = True
                 else:
-                    for i, prob in range(1, len(pairs)):
-                        if prob == old_pairs[i]:
+                    for i in range(1, len(pairs)):
+                        if pairs[i] == old_pairs[pairs[0]][i]:
                             continue
                         else:
                             update_needed = True
                 if update_needed:
                     send_pairs_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
+                    old_pairs[pairs[0]] = pairs
                 
                 outs[pairs[0]] = [pairs[1], pairs[2], pairs[3]]  # the probability of RLF
                 infos[pairs[0]] = pairs[4]  # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
-
-                old_pairs = pairs
             
             if len(outs) == 2:
                 rlf_out1, rlf_out2 = outs[dev1][0], outs[dev2][0]
