@@ -38,8 +38,8 @@ if __name__ == "__main__":
 
     # global variable
     # setting1, setting2 = at_cmd_runner.query_band(dev1), at_cmd_runner.query_band(dev2)
-    time_seq = 8 # Read Coefficients
-    time_slot = 0.01 # Decide action frequency (second)
+    time_seq = 16 # Read Coefficients
+    time_slot = 0.1 # Decide action frequency (second)
     record_freq = 0.1 # record file frequency (sec)
     rest_time = 5.0 # rest how many second.
     rest = 0 # for convenience
@@ -85,14 +85,18 @@ if __name__ == "__main__":
                 android_file = os.path.join('/sdcard/Data', f'record_pair.json')
                 # Sending the info pairs to the Android device
                 update_needed = False
-                if len(old_pairs[pairs[0]]) != len(pairs):
+                try:
+                    if len(old_pairs[pairs[0]]) != len(pairs):
+                        update_needed = True
+                    else:
+                        for i in range(1, len(pairs)):
+                            if pairs[i] == old_pairs[pairs[0]][i]:
+                                continue
+                            else:
+                                update_needed = True
+                except KeyError:
+                    old_pairs[pairs[0]] = pairs
                     update_needed = True
-                else:
-                    for i in range(1, len(pairs)):
-                        if pairs[i] == old_pairs[pairs[0]][i]:
-                            continue
-                        else:
-                            update_needed = True
                 if update_needed:
                     send_pairs_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
                     old_pairs[pairs[0]] = pairs
