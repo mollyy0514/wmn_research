@@ -110,6 +110,12 @@ func main() {
 	} else {
 		fmt.Println("Directory already exists:", logFileDirPath)
 	}
+	// Create the record directory if it doesn't exist
+	recordDir := "/sdcard/experiment_log/" + folderDate + "/record/"
+	err := os.MkdirAll(recordDir, os.ModePerm)
+	if err != nil {
+		fmt.Println("Error while creating the directory:", err)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)

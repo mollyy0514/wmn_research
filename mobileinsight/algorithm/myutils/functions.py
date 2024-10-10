@@ -92,11 +92,11 @@ def class_far_close(preds1, preds2, thr1=0.5, thr2=0.5):
 def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO=False, record_freq=1):
     
     # Loading Model
-    rlf_classifier = os.path.join(model_folder, 'rlf_cls_xgb.json')
+    rlf_classifier = os.path.join(model_folder, 'rlf_cls_xgb_20_20.json')
     rlf_predictor = Predictor(rlf = rlf_classifier)
-    lte_ho_classifier = os.path.join(model_folder, 'lte_HO_cls_xgb.json')
+    lte_ho_classifier = os.path.join(model_folder, 'mn_HO_cls_xgb_20_20.json')
     lte_ho_predictor = Predictor(lte_cls = lte_ho_classifier)
-    nr_ho_classifier = os.path.join(model_folder, 'nr_HO_cls_xgb.json')
+    nr_ho_classifier = os.path.join(model_folder, 'nr_HO_cls_xgb_20_20.json')
     nr_ho_predictor = Predictor(nr_cls = nr_ho_classifier)
 
     src = OnlineMonitor()
@@ -108,19 +108,19 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     t = [x.zfill(2) for x in t]  # zero-padding to two digit
     t = '-'.join(t[:3]) + '_' + '-'.join(t[3:])
     # mi2log save path
-    save_path = os.path.join('/home/wmnlab/Data/mobileinsight', f"diag_log_{dev}_{t}.mi2log")
+    save_path = os.path.join(f'/home/wmnlab/Desktop/experiment_log/{t}/mi2log/diag_log_{dev}_{t}.mi2log')
     src.save_log_as(save_path)
     # save XML log
     dumper = MyMsgLogger()
     dumper.set_source(src)
     dumper.set_decoding(MyMsgLogger.XML) 
     dumper.set_dump_type(MyMsgLogger.FILE_ONLY)
-    dumper.save_decoded_msg_as(f'/home/wmnlab/Data/XML/diag_log_{dev}_{t}.xml')
+    dumper.save_decoded_msg_as(f'/home/wmnlab/Desktop/experiment_log/{t}/mi2log_xml/diag_log_{dev}_{t}.xml')
     
     feature_extracter = FeatureExtracter(mode='intensive')
     feature_extracter.set_source(src)
     # save model inference record
-    save_path = os.path.join('/home/wmnlab/Data/record', f"record_{dev}_{t}.csv")
+    save_path = os.path.join(f'/home/wmnlab/Desktop/experiment_log/{t}/record/record_{dev}_{t}.csv')
     f_out = open(save_path, 'w')
     f_out.write(','.join( ['Timestamp'] + selected_features 
                          + list(rlf_predictor.models.keys()) 

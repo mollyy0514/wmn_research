@@ -21,7 +21,7 @@ if __name__ == "__main__":
     t = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
     t = [x.zfill(2) for x in t]  # zero-padding to two digit
     t = '-'.join(t[:3]) + '_' + '-'.join(t[3:])
-    f = os.path.join('/home/wmnlab/Data/command_Time', f'{t}_cmd_record.csv')
+    f = os.path.join(f'/home/wmnlab/Desktop/experiment_log/{t}/command_Time', f'{t}_cmd_record.csv')
     f_cmd = open(f,mode='w')
     f_cmd.write('Timestamp,RLF_R1,RLF_R2,LTE_HO_R1,LTE_HO_R2,NR_HO_R1,NR_HO_R2\n')
     
@@ -38,16 +38,9 @@ if __name__ == "__main__":
 
     # global variable
     # setting1, setting2 = at_cmd_runner.query_band(dev1), at_cmd_runner.query_band(dev2)
-    time_seq = 16 # Read Coefficients
+    time_seq = 8  # Read Coefficients
     time_slot = 0.1 # Decide action frequency (second)
     record_freq = 0.1 # record file frequency (sec)
-    rest_time = 5.0 # rest how many second.
-    rest = 0 # for convenience
-    
-    all_band_choice1 = [ '3', '7', '1:3:7:8', '1:3', '3:7', '3:8', '7:8', '1:7',
-                        '1:3:7', '1:3:8', '1:7:8', '3:7:8']
-    all_band_choice2 = [ '3', '7', '8', '1:3:7:8', '1:3', '3:7', '3:8', '7:8', '1:7', '1:8',
-                        '1:3:7', '1:3:8', '1:7:8', '3:7:8']
     
     # multipleprocessing
     output_queue = multiprocessing.Queue()

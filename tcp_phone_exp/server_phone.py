@@ -85,8 +85,17 @@ else:
 
 total_time = args.time
 # ===================== Parameters =====================
+# get current time
+now = dt.datetime.today()
+n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
+n = [x.zfill(2) for x in n]  # zero-padding to two digit
+n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
+
 HOST = '0.0.0.0'
-pcap_path = '/home/wmnlab/temp'
+pcap_path = f"/home/wmnlab/Desktop/experiment_log/{n[:10]}/server_pcap"
+if not os.path.isdir(pcap_path):
+   print(f"makedir: {pcap_path}")
+   os.makedirs(pcap_path)
 
 # ===================== Global Variables =====================
 stop_threads = False
@@ -111,20 +120,15 @@ def kill_traffic_capture():
         # os.system(f"sudo kill -15 {tcpproc.pid}")
     time.sleep(1)
 
-now = dt.datetime.today()
-current_datetime = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
-current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two digit
-current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
-
-capture_traffic(devices, ports, pcap_path, current_datetime)
+capture_traffic(devices, ports, pcap_path, n)
 
 # ===================== setup socket =====================
 
 def start_server(device, port):
     if port % 2 == 0:
-        logfilename = os.path.join(pcap_path, f"iperf3_ul_server_{device}_{current_datetime}.txt")
+        logfilename = os.path.join(pcap_path, f"iperf3_ul_server_{device}_{n}.txt")
     else:
-        logfilename = os.path.join(pcap_path, f"iperf3_dl_server_{device}_{current_datetime}.txt")
+        logfilename = os.path.join(pcap_path, f"iperf3_dl_server_{device}_{n}.txt")
     try:
         # Start iPerf3 server
         proc = subprocess.Popen(["iperf3", "-s", "-p", str(port), "--logfile", logfilename], preexec_fn=os.setpgrp)

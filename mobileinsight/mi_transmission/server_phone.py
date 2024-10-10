@@ -228,7 +228,10 @@ now = dt.datetime.today()
 n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
 n = [x.zfill(2) for x in n]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
-pcap_path = '/home/wmnlab/temp'
+pcap_path = f"/home/wmnlab/Desktop/experiment_log/{n[:10]}/server_pcap"
+if not os.path.isdir(pcap_path):
+   print(f"makedir: {pcap_path}")
+   os.makedirs(pcap_path)
 # record info pairs file
 f1 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')

@@ -57,7 +57,11 @@ else:
 total_time = args.time
 
 # ===================== Parameters =====================
-pcap_path = '/sdcard/experiment_log'
+now = dt.datetime.today()
+n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
+n = [x.zfill(2) for x in n]  # zero-padding to two digit
+n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
+pcap_path = f"/sdcard/experiment_log/{n[:10]}/client_pcap"
 
 # ===================== Global Variables =====================
 stop_threads = False
@@ -67,18 +71,13 @@ stop_threads = False
 if not os.path.isdir(pcap_path):
    os.system(f'mkdir {pcap_path}')
 
-now = dt.datetime.today()
-current_datetime = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
-current_datetime = [x.zfill(2) for x in current_datetime]  # zero-padding to two digit
-current_datetime = '-'.join(current_datetime[:3]) + '_' + '-'.join(current_datetime[3:])
-
-pcap = os.path.join(pcap_path, f"client_pcap_BL_{device}_{ports[0]}_{ports[1]}_{current_datetime}_sock.pcap")
+pcap = os.path.join(pcap_path, f"client_pcap_BL_{device}_{ports[0]}_{ports[1]}_{n}_sock.pcap")
 tcpproc = subprocess.Popen([f"tcpdump -i any port '({ports[0]} or {ports[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)
 time.sleep(1)
 
 # ===================== setup socket =====================
 def start_ul_client(host, port, packet_len, bitrate, time):
-    logfilename = os.path.join(pcap_path, f"iperf3_ul_client_{device}_{current_datetime}.txt")
+    logfilename = os.path.join(pcap_path, f"iperf3_ul_client_{device}_{n}.txt")
     try:
         # Start iPerf3 ul client
         if bitrate == 0:
@@ -90,7 +89,7 @@ def start_ul_client(host, port, packet_len, bitrate, time):
         print(f"Error starting iPerf3 client for uplink: {e}")
 
 def start_dl_client(host, port, packet_len, bitrate, time):
-    logfilename = os.path.join(pcap_path, f"iperf3_dl_client_{device}_{current_datetime}.txt")
+    logfilename = os.path.join(pcap_path, f"iperf3_dl_client_{device}_{n}.txt")
     try:
         # Start iPerf3 dl client
         if bitrate == 0:
