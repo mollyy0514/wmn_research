@@ -38,7 +38,6 @@ def get_ser(folder, *dev):
     
 # Show prediction result if event is predicted.
 def show_predictions(dev, preds, thr = 0.5):
-    
     try:
         if preds['rlf'] > thr:
             print(f'{Fore.RED}{dev} Prediction: Near RLF!!!{Style.RESET_ALL}')
