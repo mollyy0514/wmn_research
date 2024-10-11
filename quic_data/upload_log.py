@@ -46,7 +46,7 @@ serial_to_device = {"R5CR20FDXHK":"sm00",
 qlog_phone_folder = os.path.join("/sdcard/experiment_log", target_date)
 sync_phone_folder = os.path.join("/sdcard/experiment_log", target_date, "sync")
 server_folder = os.path.join("/home/wmnlab/temp", target_date)
-dest_computer_folder = os.path.join("/home/wmnlab/experiment_log", target_date)
+dest_computer_folder = os.path.join("/home/wmnlab/Desktop/experiment_log", target_date)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-h', "--host", help="server ip address", default="wmnlab@140.112.20.183")

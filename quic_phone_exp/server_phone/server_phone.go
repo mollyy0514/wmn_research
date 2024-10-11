@@ -89,7 +89,7 @@ func main() {
 
 	// create directory in the name of current date
 	folderDate := fmt.Sprintf("%02d-%02d-%02d", y, m, d)
-	basePath := "/home/wmnlab/experiment_log/"
+	basePath := "/home/wmnlab/Desktop/experiment_log/"
 	logFileDirPath := filepath.Join(basePath, folderDate)
 	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
 		err = os.MkdirAll(logFileDirPath, 0755) // 0755 is a common permission setting
@@ -102,7 +102,7 @@ func main() {
 		fmt.Println("Directory already exists:", logFileDirPath)
 	}
 	// Create the record directory if it doesn't exist
-	recordDir := "/home/wmnlab/Desktop/experiment_log/" + folderDate + "/record/"
+	recordDir := logFileDirPath + "/record/"
 	err := os.MkdirAll(recordDir, os.ModePerm)
 	if err != nil {
 		fmt.Println("Error while creating the directory:", err)
