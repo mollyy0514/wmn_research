@@ -21,7 +21,30 @@ if __name__ == "__main__":
     t = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
     t = [x.zfill(2) for x in t]  # zero-padding to two digit
     t = '-'.join(t[:3]) + '_' + '-'.join(t[3:])
-    f = os.path.join(f'/home/wmnlab/Desktop/experiment_log/{t}/command_Time', f'{t}_cmd_record.csv')
+    date = t[:10]
+    experiment_log_path = "/home/wmnlab/Desktop/experiment_log/"
+
+    mi2log_path1 = f'{experiment_log_path}/{date}/mi2log'  # mobileinsight log: *.mi2log
+    if not os.path.isdir(mi2log_path1):
+        print(f"makedir: {mi2log_path1}")
+        os.makedirs(mi2log_path1)
+        
+    mi2log_path2 = f'{experiment_log_path}/{date}/mi2log_xml'  # mobileinsight log: *.xml
+    if not os.path.isdir(mi2log_path2):
+        print(f"makedir: {mi2log_path2}")
+        os.makedirs(mi2log_path2)
+
+    cmdTime_path = f'{experiment_log_path}/{date}/command_Time'
+    if not os.path.isdir(cmdTime_path):
+        print(f"makedir: {cmdTime_path}")
+        os.makedirs(cmdTime_path)
+    
+    record_path = f'{experiment_log_path}/{date}/record'
+    if not os.path.isdir(record_path):
+        print(f"makedir: {record_path}")
+        os.makedirs(record_path)
+    
+    f = os.path.join(cmdTime_path, f'{t}_cmd_record.csv')
     f_cmd = open(f,mode='w')
     f_cmd.write('Timestamp,RLF_R1,RLF_R2,LTE_HO_R1,LTE_HO_R2,NR_HO_R1,NR_HO_R2\n')
     

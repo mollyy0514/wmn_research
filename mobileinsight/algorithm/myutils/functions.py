@@ -106,20 +106,21 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     t = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
     t = [x.zfill(2) for x in t]  # zero-padding to two digit
     t = '-'.join(t[:3]) + '_' + '-'.join(t[3:])
+    experiment_log_path = f"/home/wmnlab/Desktop/experiment_log/{t[:10]}"
     # mi2log save path
-    save_path = os.path.join(f'/home/wmnlab/Desktop/experiment_log/{t}/mi2log/diag_log_{dev}_{t}.mi2log')
+    save_path = os.path.join(f'{experiment_log_path}/mi2log/diag_log_{dev}_{t}.mi2log')
     src.save_log_as(save_path)
     # save XML log
     dumper = MyMsgLogger()
     dumper.set_source(src)
     dumper.set_decoding(MyMsgLogger.XML) 
     dumper.set_dump_type(MyMsgLogger.FILE_ONLY)
-    dumper.save_decoded_msg_as(f'/home/wmnlab/Desktop/experiment_log/{t}/mi2log_xml/diag_log_{dev}_{t}.xml')
+    dumper.save_decoded_msg_as(f'{experiment_log_path}/mi2log_xml/diag_log_{dev}_{t}.xml')
     
     feature_extracter = FeatureExtracter(mode='intensive')
     feature_extracter.set_source(src)
     # save model inference record
-    save_path = os.path.join(f'/home/wmnlab/Desktop/experiment_log/{t}/record/record_{dev}_{t}.csv')
+    save_path = os.path.join(f'{experiment_log_path}/record/record_{dev}_{t}.csv')
     f_out = open(save_path, 'w')
     f_out.write(','.join( ['Timestamp'] + selected_features 
                          + list(rlf_predictor.models.keys()) 
