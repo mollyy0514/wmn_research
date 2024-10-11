@@ -131,7 +131,7 @@ if __name__ == "__main__":
                                           str(lte_ho_out1['lte_cls']), str(lte_ho_out2['lte_cls']), 
                                           str(nr_ho_out1['nr_cls']), str(nr_ho_out2['nr_cls'])]) + '\n')
                 # Show prediction result during experiment. 
-                if counter == n_show-1:
+                # if counter == n_show-1:
                     show_predictions(dev1, rlf_out1); show_predictions(dev2, rlf_out2)
                     show_predictions(dev1, lte_ho_out1); show_predictions(dev2, lte_ho_out2)
                     show_predictions(dev1, nr_ho_out1); show_predictions(dev2, nr_ho_out2)
