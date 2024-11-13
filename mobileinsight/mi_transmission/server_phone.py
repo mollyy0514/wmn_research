@@ -133,6 +133,7 @@ def receive(s, dev, port, f_cmd):
                     f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_cls']), str(data_list[3]['nr_cls']),
                                         str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN'])]) + '\n')
                     # Write it in for QUIC to read
+                    # TODO
                     # update_tmp_record(tmp_record_file, data_list, dev)
                     with open(tmp_record_file, 'w') as file:
                         file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")},')
@@ -155,6 +156,7 @@ def receive(s, dev, port, f_cmd):
             print("Error: ", inst)
             stop_threads = True
 
+# TODO: update the predictions to only 2 seconds
 # def update_tmp_record(tmp_record_file, data_list, dev):
 #     if os.path.exists(tmp_record_file):
 #         temp_df = pd.read_csv(tmp_record_file, parse_dates=['Timestamp'])
