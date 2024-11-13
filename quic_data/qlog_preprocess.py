@@ -8,8 +8,12 @@ import pandas as pd
 from datetime import datetime, timedelta
 from pytictoc import TicToc
 
+# running on gpu
+from numba import jit, cuda
+
 ##### ---------- USER SETTINGS ---------- #####
 # database = "/Volumes/mollyT7/MOXA/"
+# database = "/home/wmnlab/Documents/r12921105"
 # database = "/Users/molly/Desktop/"
 database = "/home/wmnlab/F/quic_data/"
 dates = ["2024-07-28"]
@@ -78,36 +82,45 @@ def FindFilePairs(database, date, exp, device):
 
 # Convert .qlof to JSON entry
 def QlogToJsonEntry(file_path):
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
 
-    # Add commas between lines
-    json_str = ",".join(lines)
-    # Surround the entire string with square brackets to create a JSON array
-    json_str = "[" + json_str + "]"
-    # Load the JSON array
-    json_entry = json.loads(json_str)
+        # Add commas between lines
+        json_str = ",".join(lines)
+        # Surround the entire string with square brackets to create a JSON array
+        json_str = "[" + json_str + "]"
+        # Load the JSON array
+        json_entry = json.loads(json_str)
+    except:
+        print(json_str)
     
     return json_entry
 # Export JSON entry to .json
 def QlogToJson(json_entry, json_file_path):
-    with open(json_file_path, 'w') as json_file:
-        json.dump(json_entry, json_file, indent=2)
+    try: 
+        with open(json_file_path, 'w') as json_file:
+            json.dump(json_entry, json_file, indent=2)
+    except:
+        print(json_entry)
 # Convert JSON entry to .csv
 def JsonToCsv(json_entry, csv_file_path):
-     # Open CSV file for writing
-    with open(csv_file_path, 'w', newline='') as csv_file:
-        # Create a CSV writer
-        csv_writer = csv.writer(csv_file)
+    try:
+        # Open CSV file for writing
+        with open(csv_file_path, 'w', newline='') as csv_file:
+            # Create a CSV writer
+            csv_writer = csv.writer(csv_file)
 
-        # Write header row based on the keys of the second JSON object (assuming at least two objects are present)
-        if len(json_entry) >= 2:
-            header = list(json_entry[1].keys())
-            csv_writer.writerow(header)
+            # Write header row based on the keys of the second JSON object (assuming at least two objects are present)
+            if len(json_entry) >= 2:
+                header = list(json_entry[1].keys())
+                csv_writer.writerow(header)
 
-            # Write data rows starting from the second object
-            for entry in json_entry[1:]:
-                csv_writer.writerow(entry.values())
+                # Write data rows starting from the second object
+                for entry in json_entry[1:]:
+                    csv_writer.writerow(entry.values())
+    except:
+        print(json_entry)
 
 # Get the connection start time for client or server
 def GetStartTime(json_data):
@@ -364,6 +377,13 @@ def find_lost_pk_file(database, date, exp, device):
 
     return ul_files, dl_files
 
+# label retransmitted_packets to 1 and others to 0
+def label_retransmitted_pkts(sent_df):
+    df_copy = sent_df.copy()
+    df_copy['retransmit'] = df_copy.duplicated(subset='offset', keep='last')
+    
+    return df_copy
+
 # Classify lost packet
 def get_loss_data(lost_df, received_df):
     # Check if each row in ul_lost_df['packet_number'] is present in ul_received_df['packet_number']
@@ -411,7 +431,7 @@ for date in dates:
     for exp in exp_names:
         for device in device_names:
             ##### ---------- READ TIME SYNC FILE ---------- #####
-            sync_file_name = f"{database}/{date}/time_sync_{device}.json"
+            sync_file_name = f"{database}/{date}/sync/time_sync_{device}.json"
             with open(sync_file_name, 'r') as file:
                 data = json.load(file)
             # Extract values from the dictionary
@@ -502,6 +522,7 @@ for date in dates:
                 ##### ---------- SYNC TIME TO SERVER TIME ---------- #####
 
                 ##### ---------- PARSE THE DATA TYPE ---------- #####
+                print("PARSE THE DATA TYPE")
                 # sender side data
                 metrics_all_rows = sent_df[(sent_df['name'] == 'recovery:mtrc_upd') & (sent_df['data'].str.contains("'bb_in_flt':"))]
                 metrics_sent_rows = sent_df[(sent_df['name'] == 'recovery:mtrc_upd') & (sent_df['data'].str.contains("{'bb_in_flt':"))]
@@ -521,30 +542,36 @@ for date in dates:
                 ##### ---------- PARSE THE DATA TYPE ---------- #####
 
                 ##### ---------- CONCAT `transport:packet_sent` & `recovery:metrics_updated` ---------- ######
+                print("CONCATING")
                 metrics_sent_rows = metrics_sent_rows.reset_index(drop=True)
                 pk_sent_rows = pk_sent_rows.reset_index(drop=True)
 
-                for i in range(pk_sent_cnt):
-                    if(i >= len(metrics_sent_rows)):
-                        data = metrics_sent_rows.iloc[i-1]['data']
-                        new_row_data = {'time': [pk_sent_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
-                        new_row = pd.DataFrame(new_row_data)
-                        metrics_sent_rows = pd.concat([metrics_sent_rows, new_row], ignore_index=True)
-                        continue
-                    time_diff = metrics_sent_rows.iloc[i]['time'] - pk_sent_rows.iloc[i]['time']
-                    # time_diff >= 1: not the matching metrics_update
-                    while time_diff >= 1:
-                        data = metrics_sent_rows.iloc[i-1]['data']
-                        new_row_data = {'time': [pk_sent_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
-                        new_row = pd.DataFrame(new_row_data)
-                        metrics_sent_rows = insert(metrics_sent_rows, i, new_row)
+                @jit(target_backend='cuda')
+                def matchSenderMetricsUpdate(pk_sent_cnt, metrics_sent_rows, pk_sent_rows):
+                    for i in range(pk_sent_cnt):
+                        if(i >= len(metrics_sent_rows)):
+                            data = metrics_sent_rows.iloc[i-1]['data']
+                            new_row_data = {'time': [pk_sent_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
+                            new_row = pd.DataFrame(new_row_data)
+                            metrics_sent_rows = pd.concat([metrics_sent_rows, new_row], ignore_index=True)
+                            continue
                         time_diff = metrics_sent_rows.iloc[i]['time'] - pk_sent_rows.iloc[i]['time']
-                    # time_diff < 0: missing metrics_update
-                    while time_diff < 0:
-                        # print(i, time_diff_list)
-                        metrics_sent_rows.drop(index=metrics_sent_rows.index[i], inplace=True)
-                        time_diff = metrics_sent_rows.iloc[i]['time'] - pk_sent_rows.iloc[i]['time']
+                        # time_diff >= 1: not the matching metrics_update
+                        while time_diff >= 1:
+                            data = metrics_sent_rows.iloc[i-1]['data']
+                            new_row_data = {'time': [pk_sent_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
+                            new_row = pd.DataFrame(new_row_data)
+                            metrics_sent_rows = insert(metrics_sent_rows, i, new_row)
+                            time_diff = metrics_sent_rows.iloc[i]['time'] - pk_sent_rows.iloc[i]['time']
+                        # time_diff < 0: missing metrics_update
+                        while time_diff < 0:
+                            # print(i, time_diff_list)
+                            metrics_sent_rows.drop(index=metrics_sent_rows.index[i], inplace=True)
+                            time_diff = metrics_sent_rows.iloc[i]['time'] - pk_sent_rows.iloc[i]['time']
+                    
+                    return metrics_sent_rows, pk_sent_rows
                 
+                matchSenderMetricsUpdate(pk_sent_cnt, metrics_sent_rows, pk_sent_rows)
                 metrics_sent_rows = metrics_sent_rows.reset_index(drop=True)
                 pk_sent_rows = pk_sent_rows.reset_index(drop=True)
                 print("SENT ROWS CNT:", len(metrics_sent_rows), len(pk_sent_rows))
@@ -567,29 +594,34 @@ for date in dates:
                 metrics_ack_rows.drop(index=metrics_ack_rows.index[0], inplace=True)
                 metrics_ack_rows = metrics_ack_rows.reset_index(drop=True)
 
-                for i in range(rcv_ack_cnt):
-                    if(i >= len(metrics_ack_rows)):
-                        data = metrics_ack_rows.iloc[i-1]['data']
-                        new_row_data = {'time': [rcv_ack_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
-                        new_row = pd.DataFrame(new_row_data)
-                        metrics_ack_rows = pd.concat([metrics_ack_rows, new_row], ignore_index=True)
-                        continue
-                    time_diff = metrics_ack_rows.iloc[i]['time'] - rcv_ack_rows.iloc[i]['time']
-                    # time_diff >= 1: missing metrics_update 
-                    while time_diff > 0:
-                        if i == 0:
-                            data = initial_ack_metrics.iloc[0]['data']
-                        else:
+                @jit(target_backend='cuda')
+                def matchRcverMetricsUpdate(rcv_ack_cnt, metrics_ack_rows, rcv_ack_rows):
+                    for i in range(rcv_ack_cnt):
+                        if(i >= len(metrics_ack_rows)):
                             data = metrics_ack_rows.iloc[i-1]['data']
-                        new_row_data = {'time': [rcv_ack_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
-                        new_row = pd.DataFrame(new_row_data)
-                        metrics_ack_rows = insert(metrics_ack_rows, i, new_row)
+                            new_row_data = {'time': [rcv_ack_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
+                            new_row = pd.DataFrame(new_row_data)
+                            metrics_ack_rows = pd.concat([metrics_ack_rows, new_row], ignore_index=True)
+                            continue
                         time_diff = metrics_ack_rows.iloc[i]['time'] - rcv_ack_rows.iloc[i]['time']
-                    # time_diff < 0: not the matching metrics_update
-                    while time_diff <= -1:
-                        metrics_ack_rows.drop(index=metrics_ack_rows.index[i], inplace=True)
-                        time_diff = metrics_ack_rows.iloc[i]['time'] - rcv_ack_rows.iloc[i]['time']
+                        # time_diff >= 1: missing metrics_update 
+                        while time_diff > 0:
+                            if i == 0:
+                                data = initial_ack_metrics.iloc[0]['data']
+                            else:
+                                data = metrics_ack_rows.iloc[i-1]['data']
+                            new_row_data = {'time': [rcv_ack_rows.iloc[i]['time']], 'name':['recovery:mtrc_upd'], 'data': [data]}
+                            new_row = pd.DataFrame(new_row_data)
+                            metrics_ack_rows = insert(metrics_ack_rows, i, new_row)
+                            time_diff = metrics_ack_rows.iloc[i]['time'] - rcv_ack_rows.iloc[i]['time']
+                        # time_diff < 0: not the matching metrics_update
+                        while time_diff <= -1:
+                            metrics_ack_rows.drop(index=metrics_ack_rows.index[i], inplace=True)
+                            time_diff = metrics_ack_rows.iloc[i]['time'] - rcv_ack_rows.iloc[i]['time']
+                    
+                    return metrics_ack_rows, rcv_ack_rows
                 
+                matchRcverMetricsUpdate(rcv_ack_cnt, metrics_ack_rows, rcv_ack_rows)
                 metrics_ack_rows = metrics_ack_rows.reset_index(drop=True)
                 rcv_ack_rows = rcv_ack_rows.reset_index(drop=True)
                 print("RECEIVED ROWS CNT:", len(metrics_ack_rows), len(rcv_ack_rows))
@@ -773,6 +805,54 @@ for date in dates:
                 ##### ---------- PROCESSED RECEIVED FILE ---------- #####
                 print("DATA FILES PROCESSED. \n")
 
+##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES & LABEL RETRANSMITTED PKTS ---------- #####
+print("CONCATING PAKCET LOST DF WITH PROCESSED DF & LABEL RETRANSMITTED PKTS")
+all_data_files = {}
+# Iterate over dates, exps, and devices
+for exp in exp_names:
+    exp_data_files = {"ul_lost_file": [], "dl_lost_file": [], "ul_sent_file": [], "dl_sent_file": []}
+    exp_ul_lost_pk_files = []
+    exp_dl_lost_pk_files = []
+    for date in dates:
+        for device in device_names:
+            # Find "rrc" files for the current combination of date, exp, and device
+            exp_ul_lost_pk_files, exp_dl_lost_pk_files = find_lost_pk_file(database, date, exp, device)
+            ul_sent_files = find_ul_file(database, date, exp, device)
+            dl_sent_files = find_dl_file(database, date, exp, device)
+            exp_data_files["ul_lost_file"].extend(exp_ul_lost_pk_files)
+            exp_data_files["dl_lost_file"].extend(exp_dl_lost_pk_files)
+            exp_data_files["ul_sent_file"].extend(ul_sent_files)
+            exp_data_files["dl_sent_file"].extend(dl_sent_files)
+
+    all_data_files[exp] = exp_data_files
+
+print(all_data_files)
+cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'latency', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger']
+for exp in exp_names:
+    for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
+        ul_lost_df = pd.read_csv(ul_lost_file, encoding="utf-8")
+        ul_sent_df = pd.read_csv(ul_sent_file, sep='@')
+        ul_merged_df = ul_sent_df.merge(ul_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
+        ul_merged_df[['excl', 'lost']] = ul_merged_df[['excl', 'lost']].fillna(False)
+        ul_processed_sent_df = ul_merged_df[cols]
+        # 'excat_excl': excl without lost, 'excl': exact_excl U lost
+        ul_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
+        ul_processed_sent_df = pd.read_csv(ul_sent_file, sep='@')
+        ul_processed_sent_df = label_retransmitted_pkts(ul_processed_sent_df)
+        ul_processed_sent_df.to_csv(ul_sent_file, sep='@')
+        
+        dl_lost_df = pd.read_csv(dl_lost_file, encoding="utf-8")
+        dl_sent_df = pd.read_csv(dl_sent_file, sep='@')
+        dl_merged_df = dl_sent_df.merge(dl_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
+        dl_merged_df[['excl', 'lost']] = dl_merged_df[['excl', 'lost']].fillna(False)
+        dl_processed_sent_df = dl_merged_df[cols]
+        # 'excat_excl': excl without lost, 'excl': exact_excl U lost
+        dl_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
+        dl_processed_sent_df = pd.read_csv(dl_sent_file, sep='@')
+        dl_processed_sent_df = label_retransmitted_pkts(dl_processed_sent_df)
+        dl_processed_sent_df.to_csv(dl_sent_file, sep='@')
+##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES & LABEL RETRANSMITTED PKTS ---------- #####
+
 ##### ---------- CALCULATE LOST PACKET STATISTICS ---------- #####
 print("CALCULATING STATISTICS")
 all_ul_sender_files = []
@@ -852,50 +932,5 @@ for i in range(len(all_dl_rcv_files)):
     statistics_directory = "/".join(parts)
     dl_statistics.to_csv(f"{statistics_directory}/dl_statistics.csv", index=False)
 ##### ---------- CALCULATE LOST PACKET STATISTICS ---------- #####
-
-##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES ---------- #####
-print("CONCATING PAKCET LOST DF WITH PROCESSED DF")
-all_data_files = {}
-# Iterate over dates, exps, and devices
-for exp in exp_names:
-    exp_data_files = {"ul_lost_file": [], "dl_lost_file": [], "ul_sent_file": [], "dl_sent_file": []}
-    exp_ul_lost_pk_files = []
-    exp_dl_lost_pk_files = []
-    for date in dates:
-        for device in device_names:
-            # Find "rrc" files for the current combination of date, exp, and device
-            exp_ul_lost_pk_files, exp_dl_lost_pk_files = find_lost_pk_file(database, date, exp, device)
-            ul_sent_files = find_ul_file(database, date, exp, device)
-            dl_sent_files = find_dl_file(database, date, exp, device)
-            exp_data_files["ul_lost_file"].extend(exp_ul_lost_pk_files)
-            exp_data_files["dl_lost_file"].extend(exp_dl_lost_pk_files)
-            exp_data_files["ul_sent_file"].extend(ul_sent_files)
-            exp_data_files["dl_sent_file"].extend(dl_sent_files)
-
-    all_data_files[exp] = exp_data_files
-
-print(all_data_files)
-
-cols = ['time', 'epoch_time', 'Timestamp', 'name', 'packet_number', 'offset', 'length', 'bytes_in_flight', 'packets_in_flight', 'latency', 'smoothed_rtt', 'latest_rtt', 'rtt_variance', 'congestion_window', 'packet_lost', 'excl', 'lost', 'trigger']
-for exp in exp_names:
-    for idx, (ul_lost_file, dl_lost_file, ul_sent_file, dl_sent_file) in enumerate(zip(all_data_files[exp]["ul_lost_file"], all_data_files[exp]["dl_lost_file"], all_data_files[exp]["ul_sent_file"], all_data_files[exp]["dl_sent_file"])):     
-        ul_lost_df = pd.read_csv(ul_lost_file, encoding="utf-8")
-        ul_sent_df = pd.read_csv(ul_sent_file, sep='@')
-        ul_merged_df = ul_sent_df.merge(ul_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
-        ul_merged_df[['excl', 'lost']] = ul_merged_df[['excl', 'lost']].fillna(False)
-        ul_processed_sent_df = ul_merged_df[cols]
-        # 'excat_excl': excl without lost, 'excl': exact_excl U lost
-        ul_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
-        ul_processed_sent_df.to_csv(ul_sent_file, sep='@')
-        
-        dl_lost_df = pd.read_csv(dl_lost_file, encoding="utf-8")
-        dl_sent_df = pd.read_csv(dl_sent_file, sep='@')
-        dl_merged_df = dl_sent_df.merge(dl_lost_df[['packet_number', 'trigger', 'excl', 'lost']], on='packet_number', how='left')
-        dl_merged_df[['excl', 'lost']] = dl_merged_df[['excl', 'lost']].fillna(False)
-        dl_processed_sent_df = dl_merged_df[cols]
-        # 'excat_excl': excl without lost, 'excl': exact_excl U lost
-        dl_processed_sent_df.rename(columns={'excl': 'exact_excl', 'packet_lost': 'excl'}, inplace=True)
-        dl_processed_sent_df.to_csv(dl_sent_file, sep='@')
-##### ---------- CONCAT LOST PACKETS INFO TO PROCESSED FILES ---------- #####
 
 print("===== ALL PROCESSING END! =====")

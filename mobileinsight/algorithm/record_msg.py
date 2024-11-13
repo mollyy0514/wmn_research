@@ -60,7 +60,6 @@ if __name__ == "__main__":
     # ser1 = ser[0]
 
     # global variable
-    # setting1, setting2 = at_cmd_runner.query_band(dev1), at_cmd_runner.query_band(dev2)
     time_seq = 8  # Read Coefficients
     time_slot = 0.1 # Decide action frequency (second)
     record_freq = 0.1 # record file frequency (sec)
@@ -96,7 +95,9 @@ if __name__ == "__main__":
             old_pairs = {}
             while not output_queue.empty():
                 pairs = output_queue.get() 
-                
+                # set lte_cls & nr_cls to 0 just for now to focus on RLF 
+                pairs[2]['lte_cls'] = 0
+                pairs[3]['nr_cls'] = 0
                 local_file = os.path.join('/home/wmnlab/Data', f'record_pair.json')
                 android_file = os.path.join('/sdcard/Data', f'record_pair.json')
                 # Sending the info pairs to the Android device
@@ -114,7 +115,8 @@ if __name__ == "__main__":
                     old_pairs[pairs[0]] = pairs
                     update_needed = True
                 if update_needed:
-                    send_pairs_to_phone(pairs, parent_folder, local_file, android_file, dev1, dev2)
+                    send_proc = multiprocessing.Process(target=send_pairs_to_phone, args=(pairs, parent_folder, local_file, android_file, dev1, dev2))
+                    send_proc.start()
                     old_pairs[pairs[0]] = pairs
                 
                 outs[pairs[0]] = [pairs[1], pairs[2], pairs[3]]  # the probability of RLF
@@ -131,10 +133,14 @@ if __name__ == "__main__":
                                           str(lte_ho_out1['lte_cls']), str(lte_ho_out2['lte_cls']), 
                                           str(nr_ho_out1['nr_cls']), str(nr_ho_out2['nr_cls'])]) + '\n')
                 # Show prediction result during experiment. 
-                # if counter == n_show-1:
+                if counter == n_show-1:
+                    # if rlf_out1['rlf'] < 0.5:
+                    #     print(f"{dev1} NOT near RLF:", rlf_out1['rlf'])
+                    # if rlf_out2['rlf'] < 0.5:
+                    #     print(f"{dev2} NOT near RLF:", rlf_out2['rlf'])
                     show_predictions(dev1, rlf_out1); show_predictions(dev2, rlf_out2)
-                    show_predictions(dev1, lte_ho_out1); show_predictions(dev2, lte_ho_out2)
-                    show_predictions(dev1, nr_ho_out1); show_predictions(dev2, nr_ho_out2)
+                    # show_predictions(dev1, lte_ho_out1); show_predictions(dev2, lte_ho_out2)
+                    # show_predictions(dev1, nr_ho_out1); show_predictions(dev2, nr_ho_out2)
                 counter = (counter+1) % n_show
 
             end = time.time()

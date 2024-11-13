@@ -220,8 +220,8 @@ def send_pairs_to_phone(pairs, parent_folder, local_file_path, android_file_path
             # Step 2: Use adb to push the file to the Android device
             adb_push_dev1_cmd = f"adb -s {device_to_serial[dev1]} push {local_file_path} {android_file_path}"
             adb_push_dev2_cmd = f"adb -s {device_to_serial[dev2]} push {local_file_path} {android_file_path}"
-            subprocess.run(adb_push_dev1_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run(adb_push_dev2_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            process1 = subprocess.Popen(adb_push_dev1_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process2 = subprocess.Popen(adb_push_dev1_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while executing adb commands: {e}")
