@@ -105,40 +105,40 @@ for date in dates:
                             shutil.move(src_file, raw_dir)
 ##### MOVING QUIC CLIENT qlog FILES #####
 
-# ##### MOVING UDP SERVER pcap FILES #####
-# for date in dates:
-#     date_dir = os.path.join(root_dir, date)
-#     server_dir = os.path.join(root_dir, date, "server_pcap")
-#     file_list = sorted(os.listdir(server_dir))
-#     for exp_name in udp_exp_names:
-#         for i in range(1, num_experiments + 1):
-#             for device in device_names:
-#                 device_dir = os.path.join(date_dir, exp_name, device)
-#                 raw_dir = os.path.join(device_dir, f"#{i:02d}", "raw")
-#                 os.makedirs(raw_dir, exist_ok=True)
-#                 for file in file_list:
-#                     if file.startswith("server_pcap_BL_" + device):
-#                         src_file = os.path.join(server_dir, file)
-#                         file_list.remove(file)
-#                         shutil.move(src_file, raw_dir)
-#                         break
-# ##### MOVING UDP SERVER pcap FILES #####
+##### MOVING UDP SERVER pcap FILES #####
+for date in dates:
+    date_dir = os.path.join(root_dir, date)
+    server_dir = os.path.join(root_dir, date, "server_pcap")
+    file_list = sorted(os.listdir(server_dir))
+    for exp_name in udp_exp_names:
+        for i in range(1, num_experiments + 1):
+            for device in device_names:
+                device_dir = os.path.join(date_dir, exp_name, device)
+                raw_dir = os.path.join(device_dir, f"#{i:02d}", "raw")
+                os.makedirs(raw_dir, exist_ok=True)
+                for file in file_list:
+                    if file.startswith("server_pcap_BL_" + device):
+                        src_file = os.path.join(server_dir, file)
+                        file_list.remove(file)
+                        shutil.move(src_file, raw_dir)
+                        break
+##### MOVING UDP SERVER pcap FILES #####
 
-# ##### MOVING UDP CLIENT pcap FILES #####
-# for date in dates:
-#     date_dir = os.path.join(root_dir, date)
-#     for client in device_names:
-#         client_dir = os.path.join(root_dir, date, client, date, "client_pcap")
-#         file_list = sorted(os.listdir(client_dir))
-#         for exp_name in udp_exp_names:
-#             for i in range(1, num_experiments + 1):
-#                 device_dir = os.path.join(date_dir, exp_name, client)
-#                 raw_dir = os.path.join(device_dir, f"#{i:02d}", "raw")
-#                 os.makedirs(raw_dir, exist_ok=True)
-#                 for file in file_list:
-#                     if file.startswith("client_pcap_BL_" + client):
-#                         src_file = os.path.join(client_dir, file)
-#                         file_list.remove(file)
-#                         shutil.move(src_file, raw_dir)
-#                         break
-# ##### MOVING UDP CLIENT pcap FILES #####
+##### MOVING UDP CLIENT pcap FILES #####
+for date in dates:
+    date_dir = os.path.join(root_dir, date)
+    for client in device_names:
+        client_dir = os.path.join(root_dir, date, client, date, "client_pcap")
+        file_list = sorted(os.listdir(client_dir))
+        for exp_name in udp_exp_names:
+            for i in range(1, num_experiments + 1):
+                device_dir = os.path.join(date_dir, exp_name, client)
+                raw_dir = os.path.join(device_dir, f"#{i:02d}", "raw")
+                os.makedirs(raw_dir, exist_ok=True)
+                for file in file_list:
+                    if file.startswith("client_pcap_BL_" + client):
+                        src_file = os.path.join(client_dir, file)
+                        file_list.remove(file)
+                        shutil.move(src_file, raw_dir)
+                        break
+##### MOVING UDP CLIENT pcap FILES #####
