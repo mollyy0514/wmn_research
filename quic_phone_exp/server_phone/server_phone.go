@@ -51,8 +51,8 @@ func main() {
 
 	_devices_string := *_devices
 	devicesList := Get_devices(_devices_string)
-	portsList := Get_Port(devicesList)
-	print("deviceCnt: ", len(portsList), "\n")
+	portsList := Get_ports(devicesList)
+	fmt.Print("deviceCnt: ", len(devicesList), " portsCnt: ", len(portsList)*2, "\n")
 	duration := *_duration
 	PACKET_LEN = *_length
 	bitrate_string := *_bitrate
@@ -352,7 +352,7 @@ func Get_devices(_devices_string string) []string {
 			// serialsList = append(serialsList, serial)
 		}
 	} else {
-		devicesList = strings.Split(_devices_string, " ")
+		devicesList = strings.Split(_devices_string, ",")
 		// for _, dev := range devicesList {
 		// 	serial := devices.Device_to_serial[dev]
 		// 	serialsList = append(serialsList, serial)
@@ -362,7 +362,7 @@ func Get_devices(_devices_string string) []string {
 	return devicesList
 }
 
-func Get_Port(devicesList []string) [][2]int {
+func Get_ports(devicesList []string) [][2]int {
 	var portsList [][2]int
 	for _, device := range devicesList {
 		// default uplink port and downlink port for each device

@@ -7,6 +7,9 @@ from threading import Timer
 import datetime as dt
 import traceback
 import subprocess
+import pandas as pd
+from bs4 import BeautifulSoup
+from datetime import datetime
 
 from colorama import Fore, Style
 import colorama
@@ -14,6 +17,7 @@ colorama.init()
 
 # Import MobileInsight modules
 from mobile_insight.monitor import OnlineMonitor
+from algorithm.analyzer.offline_replayer import OfflineReplayer
 from algorithm.analyzer.feature_extracter.feature_extracter import FeatureExtracter
 from algorithm.analyzer.myMsgLogger import MyMsgLogger
 
@@ -89,6 +93,8 @@ def class_far_close(preds1, preds2, thr1=0.5, thr2=0.5):
 
 # Online features collected and ML model inferring.
 def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO=False, record_freq=1):
+    # if online == False, use the OfflineReplayer
+    online = True
     
     # Loading Model
     rlf_classifier = os.path.join(model_folder, 'rlf_cls_xgb_20_20.json')
@@ -98,9 +104,15 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     nr_ho_classifier = os.path.join(model_folder, 'nr_HO_cls_xgb_20_20.json')
     nr_ho_predictor = Predictor(nr_cls = nr_ho_classifier)
 
-    src = OnlineMonitor()
-    src.set_serial_port(ser)  # serial port
-    src.set_baudrate(baudrate)  # baudrate of the port
+    if online:
+        src = OnlineMonitor()
+        src.set_serial_port(ser)  # serial port
+        src.set_baudrate(baudrate)  # baudrate of the port
+    else:
+        src = OfflineReplayer()
+        input_mi2log_file = "path/to/mi2log/file.mi2log"
+        src.set_input_path(input_mi2log_file)
+
     # Record time for save filename
     now = dt.datetime.today()
     t = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
@@ -135,6 +147,39 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
     rlf_models_num = len(rlf_predictor.models)
     lte_ho_models_num = len(lte_ho_predictor.models)
     nr_ho_models_num = len(nr_ho_predictor.models)
+
+    if not online:
+        input_xml_file = "path/to/file.xml"
+        logtime_df = pd.DataFrame(columns=['timestamp', 'time_diff', 'type_id'])
+        line_cnt = 0
+        pkt_cnt = 0
+        print("CALCULATE MI TRACE...")
+        with open(input_xml_file, 'r', encoding='utf-8') as f:
+            l = f.readline()
+            while l:
+                line_cnt += 1
+                if r"<dm_log_packet>" in l:
+                    soup = BeautifulSoup(l, "html.parser")
+                    pkt_cnt += 1
+                    type_id = soup.find(key="type_id").get_text()
+                    while l and r"</dm_log_packet>" not in l:
+                        l = f.readline()
+                    try:
+                        if type_id == '5G_NR_RRC_OTA_Packet' or type_id == 'LTE_RRC_OTA_Packet':
+                            soup = BeautifulSoup(l, 'html.parser')
+                        timestamp_str = soup.find(key='device_timestamp').get_text()
+                        curr_time = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S.%f')
+                    except:
+                        print(type_id, l)
+                    if not logtime_df.empty:
+                        prev_time = logtime_df.iloc[-1]['timestamp']
+                        time_diff = curr_time - prev_time
+                    else:
+                        time_diff = pd.NaT
+                    new_row = {'timestamp': curr_time, 'time_diff': time_diff, 'type_id': type_id}
+                    logtime_df = pd.concat([logtime_df, pd.DataFrame([new_row])], ignore_index=True)
+                l = f.readline()
+                print(dev, "LINE_CNT", line_cnt, "PKT_CNT", pkt_cnt, "LOG_PKT_CNT", len(logtime_df))
     
     def run_prediction(i):
         
