@@ -120,12 +120,14 @@ class SrProfile():
     def dist_aggregate(self, tables):
         mets, RATE_TYPE = self.mets, self.RATE_TYPE
         
-        table = pd.DataFrame(columns=['window_id', 'tx_count', mets, 'latency','avg_cwnd_change'])
+        table = pd.DataFrame(columns=['window_id', 'tx_count', mets, 'latency','avg_cwnd_change', 'good_tx_count', 'latest_rtt'])
         table[mets] = table[mets].astype('Int32')
         table['window_id'] = table['window_id'].astype('float32')
         table['tx_count'] = table['tx_count'].astype('Int32')
         table['avg_cwnd_change'] = table['avg_cwnd_change'].astype('float32')
         table['latency'] = table['latency'].astype('float32')
+        table['good_tx_count'] = table['good_tx_count'].astype('Int32')
+        table['latest_rtt'] = table['latest_rtt'].astype('Int32')
         
         tables = [t for t in tables if t is not None]
         for this_table in tables:
@@ -134,13 +136,14 @@ class SrProfile():
             table[mets] = table[f'{mets}_x'] + table[f'{mets}_y']
             table['avg_cwnd_change'] = table[['avg_cwnd_change_x', 'avg_cwnd_change_y']].mean(axis=1, skipna=True)
             table['latency'] = table[['latency_x', 'latency_y']].mean(axis=1, skipna=True)
-            
-            table = table[['window_id', 'tx_count', mets, 'latency', 'avg_cwnd_change']]
+            table['good_tx_count'] = table['good_tx_count_x'] + table['good_tx_count_y']
+            table['latest_rtt'] = table[['latest_rtt_x', 'latest_rtt_y']].mean(axis=1, skipna=True)
+            table = table[['window_id', 'tx_count', mets, 'latency', 'avg_cwnd_change', 'good_tx_count', 'latest_rtt']]
         
         table[RATE_TYPE] = table[mets] / (table['tx_count'] + 1e-9) * 100
         table[RATE_TYPE] = table[RATE_TYPE].astype('float32')
         
-        table = table[['window_id', 'tx_count', mets, 'latency', 'avg_cwnd_change', RATE_TYPE]].sort_values(by=['window_id']).reset_index(drop=True)
+        table = table[['window_id', 'tx_count', mets, 'latency', 'avg_cwnd_change', 'good_tx_count', 'latest_rtt', RATE_TYPE]].sort_values(by=['window_id']).reset_index(drop=True)
         return table
     
     @staticmethod
@@ -182,19 +185,36 @@ class SrProfile():
         if mets == 'lost':
             loex_df = df[df['lost']].copy()
             ts_group = df.groupby(['window_id'])
-            table = ts_group.agg({'lost': ['count', 'sum'], 'latency': ['mean'], 'Timestamp': ['first'], 'avg_cwnd_change': lambda x: x.mean(skipna=True)}).reset_index()
+            table = ts_group.agg({'lost': ['count', 'sum'], 
+                                  'latency': ['mean'], 
+                                  'Timestamp': ['first'], 
+                                  'avg_cwnd_change': ['mean'],
+                                  'retransmit': ['sum'],
+                                  'latest_rtt': ['mean']
+                                  }).reset_index()
         elif mets == 'excl':
             # only calculate the packets with excl, but didn't used???
             df['excl_exact'] = ~df['lost'] & df['excl']
             loex_df = df[df['excl_exact']].copy()
             ts_group = df.groupby(['window_id'])
-            table = ts_group.agg({'excl_exact': ['count', 'sum'], 'Timestamp': ['first']}).reset_index()
+            table = ts_group.agg({'excl_exact': ['count', 'sum'], 
+                                  'latency': ['mean'], 
+                                  'Timestamp': ['first'], 
+                                  'avg_cwnd_change': ['mean'],
+                                  'retransmit': ['sum'],
+                                  'latest_rtt': ['mean']
+                                  }).reset_index()
         else:
             loex_df = df[~df['lost']].copy()
             ts_group = df.groupby(['window_id'])
-            table = ts_group.agg({'latency': ['count', 'mean'], 'Timestamp': ['first']}).reset_index()
+            table = ts_group.agg({'latency': ['count', 'mean'], 
+                                  'latency': ['mean'], 
+                                  'Timestamp': ['first'], 
+                                  'retransmit': ['sum'],
+                                  'latest_rtt': ['mean']
+                                  }).reset_index()
             
-        table.columns = ['window_id', 'tx_count', mets, 'latency', 'Timestamp', 'avg_cwnd_change']
+        table.columns = ['window_id', 'tx_count', mets, 'latency', 'Timestamp', 'avg_cwnd_change', 'good_tx_count', 'latest_rtt']
         
         return table, loex_df['relative_time'].to_list(), df['relative_time'].to_list()
 
@@ -359,10 +379,10 @@ class SrProfile():
             # Generate dataframes for ul or dl sent files
             if dirc == 'dl':
                 # df = generate_dataframe(filepath[1], parse_dates=['Timestamp'], usecols=['seq', 'Timestamp', 'lost', 'excl', 'latency'])
-                df = generate_dataframe(filepath[1], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latency', 'latest_rtt', 'congestion_window'])
+                df = generate_dataframe(filepath[1], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latency', 'latest_rtt', 'congestion_window', 'retransmit'])
             else:
                 # df = generate_dataframe(filepath[2], parse_dates=['Timestamp'], usecols=['seq', 'Timestamp', 'lost', 'excl', 'latency'])
-                df = generate_dataframe(filepath[2], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latency', 'latest_rtt', 'congestion_window'])
+                df = generate_dataframe(filepath[2], sep='@', parse_dates=['Timestamp'], usecols=['packet_number', 'Timestamp', 'lost', 'excl', 'latency', 'latest_rtt', 'congestion_window', 'retransmit'])
             df, ho_df, empty_data = data_aligner(df, ho_df)
             
             if empty_data:
@@ -504,14 +524,21 @@ class SrProfile():
             y2 = np.asarray(table[RATE_TYPE], dtype=np.float64)
             y3 = np.asarray(table['avg_cwnd_change'], dtype=np.float64)
             y4 = np.asarray(table['latency'], dtype=np.float64)
+
+            throughput = np.where(y1 != 0, y1 * 1223 * 8 * 10 / (1e6 * sum(self.Profile[tag]['trigger_loex'])), 0)  # Handle zero tx_count to avoid division by zero
             
             ax_twin = ax.twinx()
-            ax_twin.bar(x, y1, label='tx_packet', color='tab:blue', width=0.01, alpha=0.15)
+            # Change tx_packet to throughput
+            # ax_twin.bar(x, y1, label='tx_packet', color='tab:blue', width=0.01, alpha=0.15)
+            ax_twin.bar(x, throughput, label='Throughput (Mbps)', color='tab:blue', width=0.01, alpha=0.15)
+            ax_twin.set_ylabel('Throughput (Mbps)', color='tab:blue')  # Set the new y-label for throughput
+            ax_twin.tick_params(axis='y', labelcolor='tab:blue')
+
             ax.bar(x, y2, label='loss_rate', color='tab:blue', width=0.01, alpha=0.97)
 
             # Plot avg_cwnd_change on the right y-axis
             ax3 = ax.twinx()  # Create the y-axis on the right side
-            # ax3.spines['right'].set_position(('outward', 60))  # Move the axis to avoid overlap
+            ax3.spines['right'].set_position(('outward', 60))  # Move the axis to avoid overlap
             ax3.plot(x, y3, label='avg_cwnd_change', color='tab:green', linestyle='-', linewidth=1)
             ax3.set_ylabel('Avg CWND Change (%)', color='tab:green')
             ax3.tick_params(axis='y', labelcolor='tab:green')
@@ -522,7 +549,7 @@ class SrProfile():
             max_cwnd_idx = np.argmax(y3)
             min_cwnd_idx = np.argmin(y3)
             # Mark max & min cwnd_change with a green dot
-            # 'go': Marks the points with green dots ('g' for green, 'o' for circle marker).
+            # 'ko': Marks the points with green dots ('k' for black, 'o' for circle marker).
             ax3.plot(x[max_cwnd_idx], y3[max_cwnd_idx], 'ko', label='Max CWND', markersize=3)
             ax3.plot(x[min_cwnd_idx], y3[min_cwnd_idx], 'ko', label='Min CWND', markersize=3)
             # Add 'Max' label
@@ -536,18 +563,19 @@ class SrProfile():
             
             # Plot latency on another right y-axis
             ax4 = ax.twinx()  # Create another y-axis on the right side
-            ax4.spines['right'].set_position(('outward', 60))  # Further move the axis to avoid overlap
-            ax4.plot(x, y4, label='latency', color='tab:red', linestyle='--', linewidth=0.6)
-            ax4.set_ylabel('Latency (ms)', color='tab:red')
-            ax4.tick_params(axis='y', labelcolor='tab:red')
-            # Label the largest latency value on the plot
-            max_latency_idx = np.argmax(y4)  # Find index of the largest latency
-            max_latency_value = y4[max_latency_idx]
-            max_latency_x = x[max_latency_idx]
-            ax4.annotate(f'{max_latency_value:.2f} ms', xy=(max_latency_x, max_latency_value), 
-                        xytext=(max_latency_x + 0.1, max_latency_value + 0.1),
-                        arrowprops=dict(facecolor='black', shrink=0.05, width=0.5, headwidth=5, headlength=5),
-                        fontsize=10, fontweight='bold', color='red')
+            ax4.spines['right'].set_position(('outward', 120))  # Further move the axis to avoid overlap
+            ax4.plot(x, y4, label='latency', color='tab:pink', linestyle='--', linewidth=0.6)
+            ax4.set_ylabel('Latency (ms)', color='tab:pink')
+            ax4.tick_params(axis='y', labelcolor='tab:pink')
+            # # Label the largest latency value on the plot
+            # max_latency_idx = np.argmax(y4)  # Find index of the largest latency
+            # max_latency_value = y4[max_latency_idx]
+            # max_latency_x = x[max_latency_idx]
+            # ax4.annotate(f'{max_latency_value:.2f} ms', xy=(max_latency_x, max_latency_value), 
+            #             xytext=(max_latency_x + 0.1, max_latency_value + 0.1),
+            #             arrowprops=dict(facecolor='black', shrink=0.05, width=0.5, headwidth=5, headlength=5),
+            #             fontsize=10, fontweight='bold', color='red')
+
             # if kde1 is not None and kde2 is not None:
             #     x = np.linspace(min(xmit_data), max(xmit_data), 1000)
                 
@@ -580,10 +608,12 @@ class SrProfile():
             min_cwnd = np.asarray(table['avg_cwnd_change']).min()
             cwnd_diff = round(max_cwnd-min_cwnd, 2)
             avg_latency = round(np.asarray(table['latency']).mean(), 2)
-            ax.text(left+0.06*(right-left), bottom+0.73*(top-bottom), 
-                    f'Event Count: {count}\nTrigger Loss: {trigger} ({trigger_rate}%)\nAvg {RATE_TYPE}: {LossR}% ({LossR_}%)\nAvg INTR: {intr} (sec)\nMax CWND Diff: {cwnd_diff}%\nAvg Latency: {avg_latency}ms',
+            goodput = round((sum(table['good_tx_count']) / sum(table['tx_count'])) * 100, 2)
+            avg_rtt = round(np.asarray(table['latest_rtt']).mean(), 2)
+            ax.text(left+0.06*(right-left), bottom+0.7*(top-bottom), 
+                    f'Event Count: {count}\nTrigger Loss: {trigger} ({trigger_rate}%)\nAvg {RATE_TYPE}: {LossR}% ({LossR_}%)\nAvg INTR: {intr} (sec)\nMax CWND Diff: {cwnd_diff}%\nAvg Latency: {avg_latency}ms\nGoodput: {goodput}%\nAvg RTT: {avg_rtt}ms',
                     ha='left', fontweight='bold', fontsize=10)
-            
+                        
             if self.epoch == 'last':
                 ax.set_title(f'{DIRC_TYPE} {RATE_TYPE}: {tag} | {self.model_prefix}')
             else:
@@ -593,7 +623,7 @@ class SrProfile():
             ax.set_xlabel('Relative Timestamp (sec)')
             
             # ax_twin.set_ylabel('Number of Packets Transmit')
-            ax_twin.set_yticks([])  # Remove y-axis ticks
+            # ax_twin.set_yticks([])  # Remove y-axis ticks
             
             # 合併兩個圖的legend
             lines, labels = ax.get_legend_handles_labels()
