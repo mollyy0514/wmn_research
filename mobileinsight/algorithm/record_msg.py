@@ -46,7 +46,7 @@ if __name__ == "__main__":
     
     f = os.path.join(cmdTime_path, f'{t}_cmd_record.csv')
     f_cmd = open(f,mode='w')
-    f_cmd.write('Timestamp,RLF_R1,RLF_R2,LTE_HO_R1,LTE_HO_R2,NR_HO_R1,NR_HO_R2\n')
+    f_cmd.write('Timestamp,RLF_R1,RLF_R2,LTE_HO_R1,LTE_HO_R2,NR_HO_R1,NR_HO_R2,HO_R1,HO_R2\n')
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", type=str, nargs='+', help="device: e.g. qc00 qc01")
@@ -92,10 +92,12 @@ if __name__ == "__main__":
             start = time.time()
             outs = {}
             infos = {}
+            handovers = {}
             old_pairs = {}
             while not output_queue.empty():
                 pairs = output_queue.get() 
-                # set lte_cls & nr_cls to 0 just for now to focus on RLF 
+                # set lte_cls & nr_cls to 0 just for now to focus on RLF
+                pairs[2]['rlf'] = 0
                 pairs[2]['lte_cls'] = 0
                 pairs[3]['nr_cls'] = 0
                 local_file = os.path.join('/home/wmnlab/Data', f'record_pair.json')
@@ -121,17 +123,21 @@ if __name__ == "__main__":
                 
                 outs[pairs[0]] = [pairs[1], pairs[2], pairs[3]]  # the probability of RLF
                 infos[pairs[0]] = pairs[4]  # info format {'MN': PCI, 'earfcn': earfcn, 'band': band, 'SN': NR PCI}
+                handovers[pairs[0]] = pairs[5]
             
             if len(outs) == 2:
                 rlf_out1, rlf_out2 = outs[dev1][0], outs[dev2][0]
                 lte_ho_out1, lte_ho_out2 = outs[dev1][1], outs[dev2][1]
                 nr_ho_out1, nr_ho_out2 = outs[dev1][2], outs[dev2][2]
                 info1, info2 = infos[dev1], infos[dev2]
+                ho1, ho2 = handovers[dev1], handovers[dev2]
                 if (counter % n_record) == 0:
+                    # write it in record file
                     f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), 
                                           str(rlf_out1['rlf']), str(rlf_out2['rlf']), 
                                           str(lte_ho_out1['lte_cls']), str(lte_ho_out2['lte_cls']), 
-                                          str(nr_ho_out1['nr_cls']), str(nr_ho_out2['nr_cls'])]) + '\n')
+                                          str(nr_ho_out1['nr_cls']), str(nr_ho_out2['nr_cls'])]),
+                                          str(ho1), str(ho2) + '\n')
                 # Show prediction result during experiment. 
                 if counter == n_show-1:
                     # if rlf_out1['rlf'] < 0.5:

@@ -9,7 +9,7 @@
 *.jpeg
 *.db
 .DS_Store
-__pychache__
+__pycache__
 test.py
 test.ipynb
 temp_code

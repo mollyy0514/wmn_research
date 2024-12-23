@@ -243,3 +243,11 @@ class FeatureExtracter(Analyzer):
                 self.offline_test_dict[k].append(fea)
             self.reset()
             self.ts = ts
+
+    def get_HOs(self):
+        HOs = Rrc_Information_Collector.parse_mi_ho(self.rrc_info_collector.RRC_DICT)
+        return HOs
+    
+    def get_MRs(self):
+        MRs = self.rrc_info_collector.mr_tracer.MeasureReport(self.rrc_info_collector.RRC_DICT)
+        return MRs

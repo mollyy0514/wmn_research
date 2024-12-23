@@ -191,6 +191,12 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
         feature_extracter.gather_intensive_L()
         feature_extracter.to_featuredict()
         features = get_array_features(feature_extracter)
+        HOs = feature_extracter.get_HOs()
+        ho_event_list = []
+        for key in HOs:
+            if len(HOs[key]) != 0:
+                ho_event_list.append([key, HOs[key][-1][0].strftime("%Y-%m-%d %H:%M:%S.%f")])
+        
         if SHOW_HO and i == (n_count-1): # show HO every with freq record_freq
             show_HO(dev, feature_extracter)
         feature_extracter.remove_intensive_L_by_time(start_time - dt.timedelta(seconds=1-time_slot))
@@ -223,7 +229,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
                 w = [start_time.strftime("%Y-%m-%d %H:%M:%S.%f")]+[str(e) for e in list(features) + list(rlf_out.values()) + list(lte_ho_out.values()) + list(nr_ho_out.values())]
                 try: f_out.write(','.join(w) + ',\n')
                 except: pass
-            output_queue.put([dev, rlf_out, lte_ho_out, nr_ho_out, feature_extracter.cell_info])     
+            output_queue.put([dev, rlf_out, lte_ho_out, nr_ho_out, feature_extracter.cell_info, ho_event_list])     
 
         x_ins[i] = x_in
         i = (i+1) % n_count
@@ -266,7 +272,7 @@ def send_pairs_to_phone(pairs, parent_folder, local_file_path, android_file_path
             adb_push_dev1_cmd = f"adb -s {device_to_serial[dev1]} push {local_file_path} {android_file_path}"
             adb_push_dev2_cmd = f"adb -s {device_to_serial[dev2]} push {local_file_path} {android_file_path}"
             process1 = subprocess.Popen(adb_push_dev1_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            process2 = subprocess.Popen(adb_push_dev1_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process2 = subprocess.Popen(adb_push_dev2_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while executing adb commands: {e}")
