@@ -133,11 +133,11 @@ def receive(s, dev, port, f_cmd):
                                         str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN']), str(data_list[5])]) + '\n')
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
-                        file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")},')
+                        file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
                         # Iterate through the list and write each item on a new line
                         for i in range(len(data_list)):
                             if i < len(data_list) - 1:
-                                file.write(f"{data_list[i]},")
+                                file.write(f"{data_list[i]}@")
                             else:
                                 file.write(f"{data_list[i]}")
             except:
