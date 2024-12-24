@@ -97,7 +97,7 @@ if __name__ == "__main__":
             while not output_queue.empty():
                 pairs = output_queue.get() 
                 # set lte_cls & nr_cls to 0 just for now to focus on RLF
-                pairs[2]['rlf'] = 0
+                pairs[1]['rlf'] = 0
                 pairs[2]['lte_cls'] = 0
                 pairs[3]['nr_cls'] = 0
                 local_file = os.path.join('/home/wmnlab/Data', f'record_pair.json')
