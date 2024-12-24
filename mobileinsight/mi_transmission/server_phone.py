@@ -9,7 +9,6 @@ import os
 import sys
 import json
 import datetime as dt
-import pandas as pd
 import argparse
 import subprocess
 import signal
