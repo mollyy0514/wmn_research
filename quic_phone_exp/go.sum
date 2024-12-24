@@ -115,6 +115,8 @@ github.com/mollyy0514/quic-go v0.0.0-20241223061820-bf22c4725c81 h1:+WE1drSCwRIB
 github.com/mollyy0514/quic-go v0.0.0-20241223061820-bf22c4725c81/go.mod h1:H+BlFdKtwqcGuQLGrbJBuknlqtWwA78WDpKepiJBDgI=
 github.com/mollyy0514/quic-go v0.0.0-20241224084114-2a2c6b00fe3d h1:n3r55wrirRekjNMJ+DHiuRebSBOqRlQO09/QBPHx1P8=
 github.com/mollyy0514/quic-go v0.0.0-20241224084114-2a2c6b00fe3d/go.mod h1:H+BlFdKtwqcGuQLGrbJBuknlqtWwA78WDpKepiJBDgI=
+github.com/mollyy0514/quic-go v0.0.0-20241224084831-170b84ccc55d h1:RPIHPLygUSq2lz6zpX8eTQkcdtiNnKTOgba8XglbzS8=
+github.com/mollyy0514/quic-go v0.0.0-20241224084831-170b84ccc55d/go.mod h1:H+BlFdKtwqcGuQLGrbJBuknlqtWwA78WDpKepiJBDgI=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/onsi/ginkgo/v2 v2.19.1 h1:QXgq3Z8Crl5EL1WBAC98A5sEBHARrAJNzAmMxzLcRF0=
