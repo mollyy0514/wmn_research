@@ -136,8 +136,8 @@ if __name__ == "__main__":
                     f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), 
                                           str(rlf_out1['rlf']), str(rlf_out2['rlf']), 
                                           str(lte_ho_out1['lte_cls']), str(lte_ho_out2['lte_cls']), 
-                                          str(nr_ho_out1['nr_cls']), str(nr_ho_out2['nr_cls'])]),
-                                          str(ho1), str(ho2) + '\n')
+                                          str(nr_ho_out1['nr_cls']), str(nr_ho_out2['nr_cls']), 
+                                          str(ho1), str(ho2)]) + '\n')
                 # Show prediction result during experiment. 
                 if counter == n_show-1:
                     # if rlf_out1['rlf'] < 0.5:
