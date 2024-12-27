@@ -195,7 +195,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
         ho_event_list = []
         for key in HOs:
             if len(HOs[key]) != 0:
-                ho_event_list.append([key, HOs[key][-1][0].strftime("%Y-%m-%d %H:%M:%S.%f")])
+                ho_event_list.append([key, HOs[key][-1][0]])
         
         if SHOW_HO and i == (n_count-1): # show HO every with freq record_freq
             show_HO(dev, feature_extracter)
