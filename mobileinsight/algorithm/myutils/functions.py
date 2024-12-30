@@ -181,7 +181,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
                 l = f.readline()
                 print(dev, "LINE_CNT", line_cnt, "PKT_CNT", pkt_cnt, "LOG_PKT_CNT", len(logtime_df))
     
-    def run_prediction(i):
+    def run_prediction(i, ho_event_list):
         
         nonlocal x_ins
         x_in = x_ins[i]
@@ -192,10 +192,14 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
         feature_extracter.to_featuredict()
         features = get_array_features(feature_extracter)
         HOs = feature_extracter.get_HOs()
-        ho_event_list = []
+        if (len(ho_event_list) > 0 and 
+            start_time - dt.datetime.strptime(ho_event_list[1], "%Y-%m-%d %H:%M:%S.%f") > dt.timedelta(seconds=3)):
+            ho_event_list = []
         for key in HOs:
             if len(HOs[key]) != 0:
-                ho_event_list.append([key, HOs[key][-1][0]])
+                if (ho_event_list[0] == "RLF_II"):
+                    continue
+                ho_event_list = [key, HOs[key][-1][0]]
         
         if SHOW_HO and i == (n_count-1): # show HO every with freq record_freq
             show_HO(dev, feature_extracter)
@@ -233,12 +237,12 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
 
         x_ins[i] = x_in
         i = (i+1) % n_count
-        Timer(time_slot, run_prediction, args=[i]).start()
+        Timer(time_slot, run_prediction, args=[i, ho_event_list]).start()
     # Sync dual radios 
     start_sync_event.wait()
     print(f'Start {dev}.')
     # run model inference with freq time_slot
-    thread = Timer(time_slot, run_prediction, args=[0])
+    thread = Timer(time_slot, run_prediction, args=[0, []])
     thread.daemon = True
     thread.start()
 

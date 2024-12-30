@@ -67,7 +67,7 @@ class FeatureExtracter(Analyzer):
         """
         Analyzer.set_source(self, source)
         # enable user's internal events
-        source.enable_log_all()
+        # source.enable_log_all()
         source.enable_log("LTE_PHY_Connected_Mode_Intra_Freq_Meas")
         source.enable_log("LTE_RRC_OTA_Packet")
         source.enable_log("5G_NR_RRC_OTA_Packet")
