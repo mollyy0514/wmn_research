@@ -25,6 +25,8 @@ parser.add_argument("-l", "--length", type=str,
                     help="length of buffer to read or write in bytes (packet size)", default="250")
 parser.add_argument("-t", "--time", type=int,
                     help="time in seconds to transmit for (default 1 hour = 3600 secs)", default=3600)
+parser.add_argument("-e", "--emulator", type=bool,
+                    help="whether the system is running emulation or not", default=False)
 args = parser.parse_args()
 
 
@@ -159,7 +161,10 @@ def transmit(s):
     print("transmit", seq, "packets")
 
 def read_info_file(data_list):
-    record_file_path = "/sdcard/Data/record_pair.json"
+    if args.emulator == False:
+        record_file_path = "/sdcard/Data/record_pair.json"
+    else:
+        record_file_path = "/home/wmnlab/Data/record_pair.json"
     # only one row once
     try:
         with open(record_file_path, newline='') as f:
@@ -186,7 +191,10 @@ now = dt.datetime.today()
 n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
 n = [x.zfill(2) for x in n]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
-pcap_path = f"/sdcard/experiment_log/{n[:10]}/client_pcap"
+if args.emulator == False:
+    pcap_path = f"/sdcard/experiment_log/{n[:10]}/client_pcap"
+else:
+    pcap_path = f"/home/wmnlab/experiment_log/{n[:10]}/client_pcap"
 if not os.path.isdir(pcap_path):
    print("makedir: {pcap_path}")
    os.makedirs(pcap_path)

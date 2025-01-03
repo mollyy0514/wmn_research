@@ -45,6 +45,7 @@ func main() {
 	_bitrate := flag.String("b", "0", "target bitrate in bits/sec (0 for unlimited)")
 	_length := flag.Int("l", 1223, "length of buffer to read or write in bytes (packet size)")
 	_duration := flag.Int("t", 300, "time in seconds to transmit for (default 1 hour = 3600 secs)")
+	_emulator := flag.Bool("e", false, "whether the system is running emulation or not")
 	// Parse command-line arguments
 	flag.Parse()
 	fmt.Printf("INFO: %s %s %s %s %d %d \n", *_host, *_devices, *_ports, *_bitrate, *_length, *_duration)
@@ -58,8 +59,8 @@ func main() {
 	} else {
 		fmt.Println("port missing!")
 	}
-	var serverAddr_ul string = fmt.Sprintf("%s:%d", SERVER, PORT_UL)
-	var serverAddr_dl string = fmt.Sprintf("%s:%d", SERVER, PORT_DL)
+	var serverAddr_ul string = fmt.Sprintf("%s:%d", *_host, PORT_UL)
+	var serverAddr_dl string = fmt.Sprintf("%s:%d", *_host, PORT_DL)
 
 	PACKET_LEN = *_length
 	bitrate_string := *_bitrate
@@ -98,8 +99,13 @@ func main() {
 
 	// create directory in the name of current date
 	folderDate := fmt.Sprintf("%02d-%02d-%02d", y, m, d)
-	basePath := "/sdcard/experiment_log"
-	logFileDirPath := filepath.Join(basePath, folderDate)
+	var basePath string
+	if !*_emulator {
+		basePath = "/sdcard/"
+	} else {
+		basePath = "/home/wmnlab/"
+	}
+	logFileDirPath := filepath.Join(basePath, "experiment_log", folderDate)
 	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
 		err = os.MkdirAll(logFileDirPath, 0755) // 0755 is a common permission setting
 		if err != nil {
@@ -111,7 +117,7 @@ func main() {
 		fmt.Println("Directory already exists:", logFileDirPath)
 	}
 	// Create the record directory if it doesn't exist
-	recordDir := "/sdcard/experiment_log/" + folderDate + "/record/"
+	recordDir := filepath.Join(basePath, "experiment_log", folderDate, "record")
 	err := os.MkdirAll(recordDir, os.ModePerm)
 	if err != nil {
 		fmt.Println("Error while creating the directory:", err)

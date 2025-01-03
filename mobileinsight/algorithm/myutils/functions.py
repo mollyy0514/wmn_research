@@ -197,7 +197,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
             ho_event_list = []
         for key in HOs:
             if len(HOs[key]) != 0:
-                if (ho_event_list[0] == "RLF_II"):
+                if (len(ho_event_list) > 0 and ho_event_list[0] == "RLF"):
                     continue
                 ho_event_list = [key, HOs[key][-1][0]]
         
