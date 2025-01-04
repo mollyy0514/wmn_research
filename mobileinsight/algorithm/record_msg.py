@@ -12,13 +12,6 @@ import random
 from algorithm.myutils.at_commands import AT_Cmd_Runner
 from algorithm.myutils.functions import *
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--serial", type=str,
-                    help="emulation serial port", default="/dev/pts/0")
-parser.add_argument("-e", "--emulator", type=bool,
-                    help="whether the system is running emulation or not", default=False)
-args = parser.parse_args()
-
 if __name__ == "__main__":
     # get file path
     script_folder = os.path.dirname(os.path.abspath(__file__))
@@ -79,12 +72,8 @@ if __name__ == "__main__":
     SHOW_HO = True # whether to show HO in terminal window
     model_folder = os.path.join(parent_folder, 'model') # model path
     # using multi-processing to run prediction model inference on both dual radios
-    if args.emulator == False:
-        p1 = Process(target=device_running, args=[dev1, ser1, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
-        p2 = Process(target=device_running, args=[dev2, ser2, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
-    else:
-        p1 = Process(target=device_running, args=[dev1, args.serial, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
-        p2 = Process(target=device_running, args=[dev2, args.serial, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
+    p1 = Process(target=device_running, args=[dev1, args.serial, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
+    p2 = Process(target=device_running, args=[dev2, args.serial, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
     p1.start()
     p2.start()
     

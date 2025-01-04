@@ -236,9 +236,10 @@ if not os.path.isdir(pcap_path):
 f1 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')
 f1_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN,ho_events\n')
-f2 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[1]}_cmd_record.csv')
-f2_cmd = open(f2,mode='w')
-f2_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN,ho_events\n')
+if len(devices) > 1:
+    f2 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[1]}_cmd_record.csv')
+    f2_cmd = open(f2,mode='w')
+    f2_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN,ho_events\n')
 # Start subprocess of tcpdump
 tcpproc_list = []
 for device, port in zip(devices, ports):
