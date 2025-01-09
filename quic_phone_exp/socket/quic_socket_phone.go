@@ -103,7 +103,7 @@ func main() {
 	if !*_emulator {
 		basePath = "/sdcard/"
 	} else {
-		basePath = "/home/wmnlab/"
+		basePath = "/home/wmnlab/Desktop"
 	}
 	logFileDirPath := filepath.Join(basePath, "experiment_log", folderDate)
 	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
