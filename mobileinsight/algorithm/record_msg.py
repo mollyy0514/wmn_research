@@ -72,8 +72,8 @@ if __name__ == "__main__":
     SHOW_HO = True # whether to show HO in terminal window
     model_folder = os.path.join(parent_folder, 'model') # model path
     # using multi-processing to run prediction model inference on both dual radios
-    p1 = Process(target=device_running, args=[dev1, args.serial, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
-    p2 = Process(target=device_running, args=[dev2, args.serial, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
+    p1 = Process(target=device_running, args=[dev1, ser1, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])     
+    p2 = Process(target=device_running, args=[dev2, ser2, baudrate, time_seq, time_slot, output_queue, start_sync_event, model_folder, SHOW_HO, record_freq])
     p1.start()
     p2.start()
     

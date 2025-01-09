@@ -33,6 +33,8 @@ def get_ser(folder, *dev):
                 ser.append(os.path.join("/dev/serial/by-id", f"usb-Quectel_RM500Q-GL_{device_to_serial[d]}-if00-port0"))
             elif d.startswith("sm"):
                 ser.append(os.path.join("/dev/serial/by-id", f"usb-SAMSUNG_SAMSUNG_Android_{device_to_serial[d]}-if00-port0"))
+            elif d.startswith("vir"):
+                ser.append(os.path.join("/tmp/ttyV1"))
         return tuple(ser)
 # def get_ser(folder, *dev):
 #     d2s_path = os.path.join(folder, 'device_to_serial.json')
@@ -181,7 +183,7 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
                 l = f.readline()
                 print(dev, "LINE_CNT", line_cnt, "PKT_CNT", pkt_cnt, "LOG_PKT_CNT", len(logtime_df))
     
-    def run_prediction(i, ho_event_list):
+    def run_prediction(i, ho_event_list, time_diff):
         
         nonlocal x_ins
         x_in = x_ins[i]
@@ -193,13 +195,14 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
         features = get_array_features(feature_extracter)
         HOs = feature_extracter.get_HOs()
         if (len(ho_event_list) > 0 and 
-            start_time - dt.datetime.strptime(ho_event_list[1], "%Y-%m-%d %H:%M:%S.%f") > dt.timedelta(seconds=3)):
+            (start_time-time_diff) - dt.datetime.strptime(ho_event_list[1], "%Y-%m-%d %H:%M:%S.%f") > dt.timedelta(seconds=3)):
             ho_event_list = []
         for key in HOs:
             if len(HOs[key]) != 0:
-                if (len(ho_event_list) > 0 and ho_event_list[0] == "RLF"):
-                    continue
-                ho_event_list = [key, HOs[key][-1][0]]
+                if ((len(ho_event_list) == 0) or
+                    (len(ho_event_list) > 0 and key != ho_event_list[0] and HOs[key][-1][0] != ho_event_list[1])):
+                    ho_event_list = [key, HOs[key][-1][0]]
+                    time_diff = start_time - dt.datetime.strptime(ho_event_list[1], "%Y-%m-%d %H:%M:%S.%f")
         
         if SHOW_HO and i == (n_count-1): # show HO every with freq record_freq
             show_HO(dev, feature_extracter)
@@ -237,12 +240,12 @@ def device_running(dev, ser, baudrate, time_seq, time_slot, output_queue, start_
 
         x_ins[i] = x_in
         i = (i+1) % n_count
-        Timer(time_slot, run_prediction, args=[i, ho_event_list]).start()
-    # Sync dual radios 
+        Timer(time_slot, run_prediction, args=[i, ho_event_list, time_diff]).start()
+    # Sync dual radios
     start_sync_event.wait()
     print(f'Start {dev}.')
     # run model inference with freq time_slot
-    thread = Timer(time_slot, run_prediction, args=[0, []])
+    thread = Timer(time_slot, run_prediction, args=[0, [], dt.datetime.now()])
     thread.daemon = True
     thread.start()
 

@@ -33,6 +33,8 @@ device_to_port = {"sm00": [5200, 5201],
                   "sm08": [5216, 5217],
                   "sm09": [5218, 5219],
                   "MacBookProM1": [4200, 4201],
+                  "vir0": [5290, 5291],
+                  "vir1": [5292, 5293]
                   }
 num_devices = len(device_names)
 

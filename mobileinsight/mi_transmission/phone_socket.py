@@ -34,7 +34,7 @@ args = parser.parse_args()
 HOST = args.host  # Lab 249
 dev = args.device
 ports = args.ports
-print(ports)
+print(HOST, ports)
 
 if args.bitrate[-1] == 'k':
     bitrate = int(args.bitrate[:-1]) * 1e3
