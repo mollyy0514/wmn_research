@@ -154,10 +154,11 @@ def transmit(s):
 
             if len(data_list) == 6:
                 try:
-                    tmp_record_file = os.path.join("/sdcard/Data", f"{now.year}{now.month:02d}{now.day:02d}_{dev}_tmp_record.txt")
+                    ct = dt.datetime.today()
+                    tmp_record_file = os.path.join("/sdcard/Data", f"{ct.year}{ct.month:02d}{ct.day:02d}_{dev}_tmp_record.txt")
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
-                        file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
+                        file.write(f'{ct.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
                         # Iterate through the list and write each item on a new line
                         for i in range(len(data_list)):
                             if i < len(data_list) - 1:
