@@ -128,7 +128,7 @@ def transmit(s):
             # random data
             redundant = os.urandom(length_packet-4*5)
             # outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big') + redundant
-            
+
             # change random data to mobileinsight info pairs
             if data_list != []:
                 data_str = json.dumps(data_list)
@@ -151,6 +151,21 @@ def transmit(s):
             #     print("[%d-%d]"%(time_slot-1, time_slot), "transmit", seq-prev_transmit)
             #     time_slot += 1
             #     prev_transmit = seq
+
+            if len(data_list) == 6:
+                try:
+                    tmp_record_file = os.path.join("/sdcard/Data", f"{now.year}{now.month:02d}{now.day:02d}_{dev}_tmp_record.txt")
+                    # Write it in for QUIC to read
+                    with open(tmp_record_file, 'w') as file:
+                        file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
+                        # Iterate through the list and write each item on a new line
+                        for i in range(len(data_list)):
+                            if i < len(data_list) - 1:
+                                file.write(f"{data_list[i]}@")
+                            else:
+                                file.write(f"{data_list[i]}")
+                except:
+                    data_str = ""
 
         except Exception as e:
             print(ports[0], e)
@@ -194,7 +209,7 @@ n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
 if args.emulator == False:
     pcap_path = f"/sdcard/experiment_log/{n[:10]}/client_pcap"
 else:
-    pcap_path = f"/home/wmnlab/experiment_log/{n[:10]}/client_pcap"
+    pcap_path = f"/home/wmnlab/Desktop/experiment_log/{n[:10]}/client_pcap"
 if not os.path.isdir(pcap_path):
    print("makedir: {pcap_path}")
    os.makedirs(pcap_path)
