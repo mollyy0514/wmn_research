@@ -345,7 +345,7 @@ func Get_devices(_devices_string string) []string {
 			// serialsList = append(serialsList, serial)
 		}
 	} else {
-		devicesList = strings.Split(_devices_string, " ")
+		devicesList = strings.Split(_devices_string, ",")
 		// for _, dev := range devicesList {
 		// 	serial := devices.Device_to_serial[dev]
 		// 	serialsList = append(serialsList, serial)
