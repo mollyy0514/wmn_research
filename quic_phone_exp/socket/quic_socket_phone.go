@@ -58,8 +58,8 @@ func main() {
 	} else {
 		fmt.Println("port missing!")
 	}
-	var serverAddr_ul string = fmt.Sprintf("%s:%d", SERVER, PORT_UL)
-	var serverAddr_dl string = fmt.Sprintf("%s:%d", SERVER, PORT_DL)
+	var serverAddr_ul string = fmt.Sprintf("%s:%d", *_host, PORT_UL)
+	var serverAddr_dl string = fmt.Sprintf("%s:%d", *_host, PORT_DL)
 
 	PACKET_LEN = *_length
 	bitrate_string := *_bitrate

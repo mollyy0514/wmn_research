@@ -81,7 +81,7 @@ for device_adb, device, port, serial in zip(devices_adb, devices, ports, serials
     adb_tcpdump_cmd = f"su -c '{client_tcpdump_cmd}'"
     
     device_adb.shell("su -c 'cd /data/data/com.termux/files/home/wmn_research/quic_phone_exp && chmod +x ./client_phone/client_socket.sh'")
-    su_cmd = f'cd /data/data/com.termux/files/home/wmn_research && ./quic_phone_exp/client_phone/client_socket.sh {device} {portString} {total_time} {bitrate} {length}'
+    su_cmd = f'cd /data/data/com.termux/files/home/wmn_research && ./quic_phone_exp/client_phone/client_socket.sh {HOST} {device} {portString} {total_time} {bitrate} {length}'
     adb_cmd = f"su -c '{su_cmd}'"
 
     p_tcpdump = subprocess.Popen([f'adb -s {serial} shell "{adb_tcpdump_cmd}"'], shell=True, preexec_fn=os.setpgrp)
