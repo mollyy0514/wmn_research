@@ -31,8 +31,11 @@ args = parser.parse_args()
 #=================other variables========================
 HOST = args.host  # Lab 249
 dev = args.device
+emulate = False
+if 'vir' in dev:
+    emulate = True
 ports = args.ports
-print(ports)
+print(HOST, ports)
 
 if args.bitrate[-1] == 'k':
     bitrate = int(args.bitrate[:-1]) * 1e3
@@ -126,7 +129,7 @@ def transmit(s):
             # random data
             redundant = os.urandom(length_packet-4*5)
             # outdata = euler.to_bytes(4, 'big') + pi.to_bytes(4, 'big') + datetimedec.to_bytes(4, 'big') + microsec.to_bytes(4, 'big') + seq.to_bytes(4, 'big') + redundant
-            
+
             # change random data to mobileinsight info pairs
             if data_list != []:
                 data_str = json.dumps(data_list)
@@ -150,6 +153,22 @@ def transmit(s):
             #     time_slot += 1
             #     prev_transmit = seq
 
+            if len(data_list) == 6:
+                try:
+                    ct = dt.datetime.today()
+                    tmp_record_file = os.path.join("/sdcard/Data", f"{ct.year}{ct.month:02d}{ct.day:02d}_{dev}_tmp_record.txt")
+                    # Write it in for QUIC to read
+                    with open(tmp_record_file, 'w') as file:
+                        file.write(f'{ct.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
+                        # Iterate through the list and write each item on a new line
+                        for i in range(len(data_list)):
+                            if i < len(data_list) - 1:
+                                file.write(f"{data_list[i]}@")
+                            else:
+                                file.write(f"{data_list[i]}")
+                except:
+                    data_str = ""
+
         except Exception as e:
             print(ports[0], e)
             print(ports[0], data_str)
@@ -159,7 +178,10 @@ def transmit(s):
     print("transmit", seq, "packets")
 
 def read_info_file(data_list):
-    record_file_path = "/sdcard/Data/record_pair.json"
+    if emulate == False:
+        record_file_path = "/sdcard/Data/record_pair.json"
+    else:
+        record_file_path = "/home/wmnlab/Data/record_pair.json"
     # only one row once
     try:
         with open(record_file_path, newline='') as f:
@@ -186,10 +208,13 @@ now = dt.datetime.today()
 n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
 n = [x.zfill(2) for x in n]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
-pcap_path = '/sdcard/pcapdir/'
+if emulate == False:
+    pcap_path = f"/sdcard/experiment_log/{n[:10]}/client_pcap"
+else:
+    pcap_path = f"/home/wmnlab/Desktop/experiment_log/{n[:10]}/client_pcap"
 if not os.path.isdir(pcap_path):
-   os.system(f'mkdir {pcap_path}') 
-
+   print("makedir: {pcap_path}")
+   os.makedirs(pcap_path)
 
 pcap = os.path.join(pcap_path, f"client_pcap_BL_{dev}_{ports[0]}_{ports[1]}_{n}_sock.pcap")
 tcpproc = subprocess.Popen([f"tcpdump -i any port '({ports[0]} or {ports[1]})' -w {pcap}"], shell=True, preexec_fn=os.setpgrp)

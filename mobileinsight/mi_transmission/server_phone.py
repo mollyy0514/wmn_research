@@ -114,13 +114,32 @@ def receive(s, dev, port, f_cmd):
 
             # decode the info record pair data
             fixed_size = 4 * 5
-            data_bytes = indata[fixed_size:fixed_size + 96]
+            data_bytes = indata[fixed_size:]
+            for i in range(100, len(data_bytes)):
+                try:
+                    curr = bytes([data_bytes[i]]).decode('utf-8')
+                    next = bytes([data_bytes[i+1]]).decode('utf-8')
+                except Exception as e:
+                    data_bytes = data_bytes[:i]
+                    break
+            now = dt.datetime.now()
+            tmp_record_file = os.path.join("/home/wmnlab/temp", f"{now.year}{now.month:02d}{now.day:02d}_{dev}_tmp_record.txt")
             try:
                 data_str = data_bytes.decode('utf-8')
                 data_list = json.loads(data_str)
                 if data_list[0] == dev:
-                    f_cmd.write(','.join([dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']),
-                                        str(data_list[2]['MN']), str(data_list[2]['earfcn']), str(data_list[2]['band']), str(data_list[2]['SN'])]) + '\n')
+                    # Write in the records
+                    f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_cls']), str(data_list[3]['nr_cls']),
+                                        str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN']), str(data_list[5])]) + '\n')
+                    # Write it in for QUIC to read
+                    with open(tmp_record_file, 'w') as file:
+                        file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
+                        # Iterate through the list and write each item on a new line
+                        for i in range(len(data_list)):
+                            if i < len(data_list) - 1:
+                                file.write(f"{data_list[i]}@")
+                            else:
+                                file.write(f"{data_list[i]}")
             except:
                 data_str = ""
 
@@ -209,14 +228,18 @@ now = dt.datetime.today()
 n = [str(x) for x in [now.year, now.month, now.day, now.hour, now.minute, now.second]]
 n = [x.zfill(2) for x in n]  # zero-padding to two digit
 n = '-'.join(n[:3]) + '_' + '-'.join(n[3:])
-pcap_path = '/home/wmnlab/temp'
+pcap_path = f"/home/wmnlab/Desktop/experiment_log/{n[:10]}/server_pcap"
+if not os.path.isdir(pcap_path):
+   print(f"makedir: {pcap_path}")
+   os.makedirs(pcap_path)
 # record info pairs file
-f1 = os.path.join(pcap_path, f'{n}_{devices[0]}_cmd_record.csv')
+f1 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[0]}_cmd_record.csv')
 f1_cmd = open(f1,mode='w')
-f1_cmd.write('Timestamp,rlf,MN,earfcn,band,SN\n')
-f2 = os.path.join(pcap_path, f'{n}_{devices[1]}_cmd_record.csv')
-f2_cmd = open(f2,mode='w')
-f2_cmd.write('Timestamp,rlf,MN,earfcn,band,SN\n')
+f1_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN,ho_events\n')
+if len(devices) > 1:
+    f2 = os.path.join(pcap_path, f'{now.year}{now.month:02d}{now.day:02d}_{devices[1]}_cmd_record.csv')
+    f2_cmd = open(f2,mode='w')
+    f2_cmd.write('Timestamp,rlf,lte_cls,nr_cls,MN,earfcn,band,SN,ho_events\n')
 # Start subprocess of tcpdump
 tcpproc_list = []
 for device, port in zip(devices, ports):

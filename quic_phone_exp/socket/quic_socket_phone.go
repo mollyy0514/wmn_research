@@ -47,7 +47,7 @@ func main() {
 	_duration := flag.Int("t", 300, "time in seconds to transmit for (default 1 hour = 3600 secs)")
 	// Parse command-line arguments
 	flag.Parse()
-	fmt.Printf("INFO: %s %s %s %s %d %d \n", *_host, *_devices, *_ports, *_bitrate, *_length, *_duration)
+	fmt.Printf("INFO: %s %s %s %s %d %d\n", *_host, *_devices, *_ports, *_bitrate, *_length, *_duration)
 
 	duration := *_duration
 	portsList := strings.Split(*_ports, ",")
@@ -98,8 +98,13 @@ func main() {
 
 	// create directory in the name of current date
 	folderDate := fmt.Sprintf("%02d-%02d-%02d", y, m, d)
-	basePath := "/sdcard/experiment_log"
-	logFileDirPath := filepath.Join(basePath, folderDate)
+	var basePath string
+	if !strings.Contains(*_devices, "vir") {
+		basePath = "/sdcard/"
+	} else {
+		basePath = "/home/wmnlab/Desktop"
+	}
+	logFileDirPath := filepath.Join(basePath, "experiment_log", folderDate)
 	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
 		err = os.MkdirAll(logFileDirPath, 0755) // 0755 is a common permission setting
 		if err != nil {
@@ -109,6 +114,12 @@ func main() {
 		fmt.Println("Directory created:", logFileDirPath)
 	} else {
 		fmt.Println("Directory already exists:", logFileDirPath)
+	}
+	// Create the record directory if it doesn't exist
+	recordDir := filepath.Join(basePath, "experiment_log", folderDate, "record")
+	err := os.MkdirAll(recordDir, os.ModePerm)
+	if err != nil {
+		fmt.Println("Error while creating the directory:", err)
 	}
 
 	var wg sync.WaitGroup

@@ -89,7 +89,7 @@ func main() {
 
 	// create directory in the name of current date
 	folderDate := fmt.Sprintf("%02d-%02d-%02d", y, m, d)
-	basePath := "/home/wmnlab/temp/QUIC_temp"
+	basePath := "/home/wmnlab/Desktop/experiment_log"
 	logFileDirPath := filepath.Join(basePath, folderDate)
 	if _, err := os.Stat(logFileDirPath); os.IsNotExist(err) {
 		err = os.MkdirAll(logFileDirPath, 0755) // 0755 is a common permission setting
