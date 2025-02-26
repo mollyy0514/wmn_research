@@ -155,7 +155,11 @@ def transmit(s):
             if len(data_list) == 6:
                 try:
                     ct = dt.datetime.today()
-                    tmp_record_file = os.path.join("/sdcard/Data", f"{ct.year}{ct.month:02d}{ct.day:02d}_{dev}_tmp_record.txt")
+                    tmp_record_file = ""
+                    if args.emulator == False:
+                        tmp_record_file = os.path.join("/sdcard/Data", f"{ct.year}{ct.month:02d}{ct.day:02d}_{dev}_tmp_record.txt")
+                    else:
+                        tmp_record_file = os.path.join("/home/wmnlab/temp", f"{ct.year}{ct.month:02d}{ct.day:02d}_{dev}_tmp_record.txt")
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
                         file.write(f'{ct.strftime("%Y-%m-%d %H:%M:%S.%f")}@')
