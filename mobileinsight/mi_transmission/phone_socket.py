@@ -181,7 +181,7 @@ def read_info_file(data_list):
     if emulate == False:
         record_file_path = "/sdcard/Data/record_pair.json"
     else:
-        record_file_path = "/home/wmnlab/Data/record_pair.json"
+        record_file_path = "/home/wmnlab/temp/record_pair.json"
     # only one row once
     try:
         with open(record_file_path, newline='') as f:
