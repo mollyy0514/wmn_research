@@ -152,7 +152,7 @@ def transmit(s):
             #     time_slot += 1
             #     prev_transmit = seq
 
-            if len(data_list) == 6:
+            if len(data_list) == 3:
                 try:
                     ct = dt.datetime.today()
                     tmp_record_file = ""

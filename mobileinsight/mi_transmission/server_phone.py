@@ -22,9 +22,9 @@ parser.add_argument("-d", "--devices", type=str, nargs='+',   # input list of de
 parser.add_argument("-p", "--ports", type=str, nargs='+',     # input list of port numbers sep by 'space'
                     help="ports to bind")
 parser.add_argument("-b", "--bitrate", type=str,
-                    help="target bitrate in bits/sec (0 for unlimited)", default="1M")
+                    help="target bitrate in bits/sec (0 for unlimited)", default="400k")
 parser.add_argument("-l", "--length", type=str,
-                    help="length of buffer to read or write in bytes (packet size)", default="250")
+                    help="length of buffer to read or write in bytes (packet size)", default="100")
 parser.add_argument("-t", "--time", type=int,
                     help="time in seconds to transmit for (default 1 hour = 3600 secs)", default=3600)
 args = parser.parse_args()
@@ -115,7 +115,7 @@ def receive(s, dev, port, f_cmd):
             # decode the info record pair data
             fixed_size = 4 * 5
             data_bytes = indata[fixed_size:]
-            for i in range(100, len(data_bytes)):
+            for i in range(50, len(data_bytes)):
                 try:
                     curr = bytes([data_bytes[i]]).decode('utf-8')
                     next = bytes([data_bytes[i+1]]).decode('utf-8')
@@ -129,8 +129,7 @@ def receive(s, dev, port, f_cmd):
                 data_list = json.loads(data_str)
                 if data_list[0] == dev:
                     # Write in the records
-                    f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2]['lte_cls']), str(data_list[3]['nr_cls']),
-                                        str(data_list[4]['MN']), str(data_list[4]['earfcn']), str(data_list[4]['band']), str(data_list[4]['SN']), str(data_list[5])]) + '\n')
+                    f_cmd.write(','.join([now.strftime("%Y-%m-%d %H:%M:%S.%f"), str(data_list[1]['rlf']), str(data_list[2])]) + '\n')
                     # Write it in for QUIC to read
                     with open(tmp_record_file, 'w') as file:
                         file.write(f'{now.strftime("%Y-%m-%d %H:%M:%S.%f")}@')

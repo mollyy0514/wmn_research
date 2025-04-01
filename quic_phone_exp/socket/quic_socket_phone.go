@@ -40,12 +40,12 @@ func main() {
 	/* ---------- USER SETTING --------- */
 	// Define command-line flags
 	_host := flag.String("H", "140.112.20.183", "server ip address")
-	_devices := flag.String("d", "sm00", "list of devices (space-separated)")
-	_ports := flag.String("p", "5200,5201", "ports to bind (space-separated)")
+	_devices := flag.String("d", "vir0", "list of devices (space-separated)")
+	_ports := flag.String("p", "5290,5291", "ports to bind (space-separated)")
 	_bitrate := flag.String("b", "0", "target bitrate in bits/sec (0 for unlimited)")
 	_length := flag.Int("l", 1223, "length of buffer to read or write in bytes (packet size)")
-	_duration := flag.Int("t", 300, "time in seconds to transmit for (default 1 hour = 3600 secs)")
-	_emulator := flag.Bool("e", false, "whether the system is running emulation or not")
+	_duration := flag.Int("t", 800, "time in seconds to transmit for (default 1 hour = 3600 secs)")
+	_emulator := flag.Bool("e", true, "whether the system is running emulation or not")
 	// Parse command-line arguments
 	flag.Parse()
 	fmt.Printf("INFO: %s %s %s %s %d %d \n", *_host, *_devices, *_ports, *_bitrate, *_length, *_duration)
